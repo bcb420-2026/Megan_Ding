@@ -1,0 +1,40 @@
+---
+title: "Week 1 Exercise"
+output: html_notebook
+---
+
+### Generate data
+```{r}
+set.seed(420)
+
+pois_mat <- matrix(rnbinom(n = 50, 1, 0.01), nrow = 5, ncol = 10)
+```
+
+### Name data matrix
+
+```{r}
+colnames(pois_mat) <- paste0(rep(c("cond", "ctrl"), each = 5),
+                             rep(1:5, 2))
+rownames(pois_mat) <- paste0("gene", 1:5)
+
+```
+
+### FC for each gene
+
+```{r}
+# first column scale
+norm_dat <- scale(pois_mat, center = F)
+
+# manual FC calc
+fc_genes <- rowMeans(norm_dat[, grep("cond*", colnames(norm_dat))])/
+  rowMeans(norm_dat[, grep("ctrl*", colnames(norm_dat))])
+```
+
+### Plot FCs
+
+```{r}
+barplot(height = fc_genes, names.arg = rownames(norm_dat), xlab = "Gene", ylab = "Fold Change", main = "Fold change of mean gene expression\nbetween cases and controls")
+
+barplot(height = log(fc_genes, base = 2), names.arg = rownames(norm_dat), xlab = "Gene", ylab = "log2 Fold Change", main = "Log2 fold change of mean gene expression\nbetween cases and controls")
+```
+
