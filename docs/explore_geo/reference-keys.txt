@@ -1,0 +1,7 @@
+overview
+packages
+q1.-what-type-of-data-is-it-describe-it
+q2.-what-disease-or-model-is-it-using
+q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record
+q4.-how-many-control-and-how-many-disease
+q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not
