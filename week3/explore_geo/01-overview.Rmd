@@ -1,0 +1,39 @@
+# Overview
+
+In-class exercise for week 3. Exploring GEO using GEOmetadb and SQL queries.
+
+## Packages
+
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+if (!requireNamespace("GEOmetadb", quietly = TRUE))
+  BiocManager::install("GEOmetadb")
+if (!requireNamespace("DBI", quietly = TRUE))
+  install.packages("DBI")
+if (!requireNamespace("RSQLite", quietly = TRUE))
+  install.packages("RSQLite")
+if (!requireNamespace("dplyr", quietly = TRUE))
+  install.packages("dplyr")
+if (!requireNamespace("ggplot2", quietly = TRUE))
+  install.packages("ggplot2")
+
+library(GEOmetadb)
+library(DBI)
+library(RSQLite)
+library(ggplot2)
+library(dplyr)
+
+if (!file.exists('~/projects/Megan_Ding/in_class_exercises/using_geometadb/GEOmetadb.sqlite')) getSQLiteFile()
+file.info('~/projects/Megan_Ding/in_class_exercises/using_geometadb/GEOmetadb.sqlite')
+
+
+con <- dbConnect(SQLite(), '~/projects/Megan_Ding/in_class_exercises/using_geometadb/GEOmetadb.sqlite')
+
+dbListTables(con)
+
+dbListFields(con, 'gds')
+
+```
+
+

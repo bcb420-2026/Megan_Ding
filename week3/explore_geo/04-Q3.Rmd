@@ -1,0 +1,21 @@
+# Q3. How many samples are there? What type of data is associated with the record?
+
+```{r}
+like_sql <- paste(paste0("series_id LIKE '%", gse_ids, "%' OR"), collapse = " ")
+like_sql <- substr(like_sql, 1, nchar(like_sql)-3)
+sql <- paste(
+  "SELECT series_id, gsm, title, type, source_name_ch1, characteristics_ch1, label_ch1, treatment_protocol_ch1, source_name_ch2, characteristics_ch2, label_ch2, treatment_protocol_ch2, description",
+  "FROM gsm",
+  "WHERE", like_sql, sep = " ")
+	
+all_gsm_attr <- dbGetQuery(con, sql)
+table(all_gsm_attr$series_id)
+```
+
+GSE162183: 6 samples, scRNA-seq
+
+GSE166530: 41 samples, bulk RNA-seq
+
+GSE186458: 253 samples, bulk RNA-seq
+
+GSE201427: 8 samples, bulk RNA-seq

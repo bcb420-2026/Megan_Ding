@@ -1,0 +1,18 @@
+# Q4. How many control and how many disease?
+
+```{r}
+all_gsm_attr_ctrl <- all_gsm_attr[grepl("control|normal|healthy|wild|ctrl|Ctrl|WT|Neg|neg", all_gsm_attr$source_name_ch1) | grepl("control|normal|healthy|wild|ctrl|Ctrl|WT|Neg|neg", all_gsm_attr$characteristics_ch1), ]
+
+all_gsm_attr_disease <- all_gsm_attr[grepl("tumo?r|cancer|patient|disease|mutant|treated|stim|mut|KO|KD|Pos|pos", all_gsm_attr$source_name_ch1) | grepl("tumo?r|cancer|patient|disease|mutant|treated|stim|mut|KO|KD|Pos|pos", all_gsm_attr$characteristics_ch1), ]
+table(all_gsm_attr_ctrl$series_id)
+table(all_gsm_attr_disease$series_id)
+table(all_gsm_attr$source_name_ch1[all_gsm_attr$series_id == "GSE186458"])
+```
+
+GSE162183: 3 control => 3 disease (since there are 6 total samples, but nothing matches my disease query)
+
+GSE166530: 5 control, 36 disease
+
+GSE186458: No case-control, but has several tissue sources as tabulated above.
+
+GSE201427: 5 control, 3 treatment (since there are 8 total samples, but nothing matches my treatment query)

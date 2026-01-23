@@ -1,0 +1,20 @@
+# Q5. Can you find out any information about the GEO dataset - GSE264108. Why or Why not?
+
+```{r}
+sql <- paste(
+  "SELECT DISTINCT *",
+  "FROM gse",
+  "WHERE gse LIKE '%GSE264108%'", sep = " ")
+dbGetQuery(con, sql)
+sql <- paste(
+  "SELECT DISTINCT *",
+  "FROM gse_gpl",
+  "WHERE gse LIKE '%GSE264108%'", sep = " ")
+dbGetQuery(con, sql)
+
+sql <- "SELECT submission_date FROM gse"
+dates <- dbGetQuery(con, sql)
+max(dates[[1]])
+```
+
+None of the tables have GSE264108 in them. This is because this GSE became public on Jan 25, 2025, but the oldest GSE in the database is from Feb 29, 2024. This gets at the issue with this method of querying GEO as we rely on a static instance of the database that may be almost 2 years out of date.

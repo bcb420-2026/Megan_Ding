@@ -1,0 +1,12 @@
+book_filename: geometadb-tutorial
+output_dir: "docs"
+language:
+  ui:
+    chapter_name: "Chapter "
+rmd_files:
+  - 01-overview.Rmd
+  - 02-Q1.Rmd
+  - 03-Q2.Rmd
+  - 04-Q3.Rmd
+  - 05-Q4.Rmd
+  - 06-Q5.Rmd

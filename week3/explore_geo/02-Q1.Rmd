@@ -1,0 +1,23 @@
+# Q1. What type of data is it? Describe it
+
+```{r}
+vect2sql <- function(x){
+  paste("('", paste(x, collapse = "','"), "')", 
+                 sep = "")
+}
+gse_ids <- c("GSE201427","GSE166530","GSE162183","GSE186458")
+gse_sql <- vect2sql(gse_ids)
+# dbListTables(con)
+
+# dbListFields(con, 'gpl')
+
+sql <- paste(
+  "SELECT DISTINCT gse_gpl.gse, gse_gpl.gpl, gse.title",
+  "FROM gse JOIN gse_gpl ON gse_gpl.gse = gse.gse",
+  "WHERE gse.gse IN", gse_sql, sep = " ")
+series <- dbGetQuery(con, sql)
+```
+
+GSE186458, GSE166530, GSE162183: Illumina NovaSeq 6000 (Homo sapiens), high-throughput sequencing (RNA-seq)
+
+GSE201427: Illumina HiSeq 4000 (Homo sapiens), high-throughput sequencing (RNA-seq)

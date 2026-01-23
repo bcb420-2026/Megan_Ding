@@ -1,0 +1,17 @@
+# Q2. What disease or model is it using?
+
+```{r}
+sql <- paste(
+  "SELECT DISTINCT gse, overall_design, variable, variable_description, pubmed_id, summary",
+  "FROM gse",
+  "WHERE gse IN", gse_sql, sep = " ")
+model <- dbGetQuery(con, sql)
+```
+
+GSE162183: Single cell RNA-seq study of human psoriasis skin.
+
+GSE166530: Differential expression analysis of RNA-Seq data from COVID-19 positive samples against COVID-19 negative control.
+
+GSE186458: Genome-wide patterns of DNA methylation across a variety of cell types in healthy adults.
+
+GSE201427: Panc1 cells were treated either with control siRNA (siCtrl) or siRNA targeting SF3B1 (siSF3B1). siCtrl cells were exposed to 1% O2 or 21% O2, siSF3B1 cells to 1% O2 for 8 hours. 1% O2 mimics hypoxia.
