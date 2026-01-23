@@ -1,0 +1,20 @@
+
+---
+title: "Explore GEO"
+author: "Megan Ding"
+date: "`r format(Sys.Date())`"
+site: bookdown::bookdown_site
+documentclass: book
+description: |
+  In-class exercise for week 3.
+---
+
+# Welcome {-}
+
+These are my answers to the in-class exercise for week 3.
+
+Build this book by running in R (assuming you're in the directory with all of the Rmd files):
+
+```r
+bookdown::render_book(".")
+```
