@@ -1,5 +1,5 @@
 book_filename: explore-geo
-output_dir: "docs"
+output_dir: "./../../docs/explore_geo"
 language:
   ui:
     chapter_name: "Chapter "
