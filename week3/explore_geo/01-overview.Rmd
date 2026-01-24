@@ -24,11 +24,11 @@ library(RSQLite)
 library(ggplot2)
 library(dplyr)
 
-if (!file.exists('~/projects/Megan_Ding/in_class_exercises/using_geometadb/GEOmetadb.sqlite')) getSQLiteFile()
-file.info('~/projects/Megan_Ding/in_class_exercises/using_geometadb/GEOmetadb.sqlite')
+if (!file.exists('GEOmetadb.sqlite')) getSQLiteFile()
+file.info('GEOmetadb.sqlite')
 
 
-con <- dbConnect(SQLite(), '~/projects/Megan_Ding/in_class_exercises/using_geometadb/GEOmetadb.sqlite')
+con <- dbConnect(SQLite(), 'GEOmetadb.sqlite')
 
 dbListTables(con)
 
