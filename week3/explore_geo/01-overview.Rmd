@@ -17,23 +17,30 @@ if (!requireNamespace("dplyr", quietly = TRUE))
   install.packages("dplyr")
 if (!requireNamespace("ggplot2", quietly = TRUE))
   install.packages("ggplot2")
-
-library(GEOmetadb)
-library(DBI)
-library(RSQLite)
-library(ggplot2)
-library(dplyr)
-
-if (!file.exists('GEOmetadb.sqlite')) getSQLiteFile()
-file.info('GEOmetadb.sqlite')
-
-
-con <- dbConnect(SQLite(), 'GEOmetadb.sqlite')
-
-dbListTables(con)
-
-dbListFields(con, 'gds')
-
 ```
 
+## SQLite database
 
+```{r}
+library(GEOmetadb)
+if (!file.exists('GEOmetadb.sqlite')) getSQLiteFile()
+file.info('GEOmetadb.sqlite')
+```
+
+## Connect to the database
+
+```{r}
+library(DBI)
+library(RSQLite)
+con <- dbConnect(SQLite(), 'GEOmetadb.sqlite')
+```
+
+## Explore tables and fields
+
+```{r}
+dbListTables(con)
+dbListFields(con, 'gse')
+dbListFields(con, 'gsm')
+dbListFields(con, 'gpl')
+
+```
