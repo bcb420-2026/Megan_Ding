@@ -1,5 +1,6 @@
 book_filename: explore-geo
 output_dir: "./../../docs/explore_geo"
+delete_merged_file: true
 language:
   ui:
     chapter_name: "Chapter "
