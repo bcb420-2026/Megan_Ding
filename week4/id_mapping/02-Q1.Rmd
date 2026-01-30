@@ -1,0 +1,59 @@
+# Exercise 1. GSE119732
+
+```{r}
+gse <- "GSE119732"
+fetch_geo_supp(gse = gse)
+
+path <- file.path("data", gse)
+files <- list.files(path, 
+                    full.names = TRUE, recursive = TRUE)
+
+safe_read <- function(file) {
+  # First attempt: read as TSV
+  df <- tryCatch(
+    readr::read_tsv(file, show_col_types = FALSE),
+    error = function(e) NULL   # catch fatal errors
+  )
+  
+  # If read_tsv failed entirely:
+  if (is.null(df)) {
+    message("TSV read failed — reading as space-delimited file instead.")
+    return(readr::read_table(file, show_col_types = FALSE))
+  }
+  
+  # If read_tsv returned but with parsing issues:
+  probs <- problems(df)
+  if (nrow(probs) > 0) {
+    message("Parsing issues detected in TSV — reading as space-delimited file instead.")
+    return(readr::read_table(file, show_col_types = FALSE))
+  }
+  
+  # If everything was fine:
+  return(df)
+}
+
+x <- safe_read(files[1])
+
+
+kable_head(x[, 1], 20, paste(gse,": first 20 gene ids"))
+
+id_col <- names(x)[1]
+ids <- x[[1]][1:20] |> as.character()
+num_dot <- sum(grepl("\\.", ids))
+print(paste0("Of the first 20 gene ids, ", num_dot, " have versions."))
+
+if (any(grepl("^ENSG", strip_ensembl_version(ids)))) {
+  library(biomaRt)
+  ensembl_ids <- unique(strip_ensembl_version(ids))
+  ensembl <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+  map <- getBM(
+    attributes = c("ensembl_gene_id", "hgnc_symbol"),
+    filters = "ensembl_gene_id",
+    values = ensembl_ids,
+    mart = ensembl
+  )
+
+  kable_head(map[, c("ensembl_gene_id", "hgnc_symbol")], 20, paste(gse,": mapping"))
+}
+```

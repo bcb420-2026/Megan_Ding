@@ -1,0 +1,21 @@
+# Overview
+
+In-class exercise for week 4. Using Biomart to map ensemble gene IDs to gene symbols.
+
+## Packages
+
+```{r}
+library(knitr)
+library(dplyr)
+library(tibble)
+library(readr)
+library(ggplot2)
+library(stringr)
+
+kable_head <- function(x, n = 5, caption = NULL) {
+  knitr::kable(utils::head(x, n), caption = caption)
+}
+
+strip_ensembl_version <- function(x) sub("\\..*$", "", x)
+source("~/projects/Megan_Ding/in_class_exercises/id_mapping/fetch_geo_supp.R")
+```

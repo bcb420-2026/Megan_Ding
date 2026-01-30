@@ -1,0 +1,11 @@
+book_filename: id-mapping
+output_dir: "./../../docs/id_mapping"
+delete_merged_file: true
+language:
+  ui:
+    chapter_name: ""
+rmd_files:
+  - 01-overview.Rmd
+  - 02-Q1.Rmd
+  - 03-Q2.Rmd
+  - 04-Q3.Rmd

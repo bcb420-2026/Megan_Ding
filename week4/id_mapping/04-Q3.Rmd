@@ -1,0 +1,3 @@
+# Exercise 3
+
+You can use the code from the worked example to process the above GSEs. Just create a params object with a gse and file_grep attribute, then run the code.

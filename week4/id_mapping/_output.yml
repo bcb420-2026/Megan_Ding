@@ -1,0 +1,14 @@
+
+bookdown::gitbook:
+  css: style.css
+  toc_depth: 2
+  config:
+    toc:
+      collapse: subsection
+      before: |
+        <li><a href="./">Week 4 Gene ID Mapping</a></li>
+  
+bookdown::pdf_book:
+  toc: true
+  number_sections: true
+  keep_tex: false
