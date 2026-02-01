@@ -4,24 +4,26 @@
 
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>Chapter 4 Q3. How many samples are there? What type of data is associated with the record? | explore-geo.knit</title>
-  <meta name="description" content="" />
+  <title>Chapter 4 Q3. How many samples are there? What type of data is associated with the record? | Explore GEO</title>
+  <meta name="description" content="In-class exercise for week 3." />
   <meta name="generator" content="bookdown 0.46 and GitBook 2.6.7" />
 
-  <meta property="og:title" content="Chapter 4 Q3. How many samples are there? What type of data is associated with the record? | explore-geo.knit" />
+  <meta property="og:title" content="Chapter 4 Q3. How many samples are there? What type of data is associated with the record? | Explore GEO" />
   <meta property="og:type" content="book" />
   
-  
+  <meta property="og:description" content="In-class exercise for week 3." />
   
 
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Chapter 4 Q3. How many samples are there? What type of data is associated with the record? | explore-geo.knit" />
+  <meta name="twitter:title" content="Chapter 4 Q3. How many samples are there? What type of data is associated with the record? | Explore GEO" />
   
-  
+  <meta name="twitter:description" content="In-class exercise for week 3." />
   
 
+<meta name="author" content="Megan Ding" />
 
 
+<meta name="date" content="2026-02-01" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -139,6 +141,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><a href="./">Week 3 Explore GEO</a></li>
 
 <li class="divider"></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Welcome</a></li>
 <li class="chapter" data-level="1" data-path="overview.html"><a href="overview.html"><i class="fa fa-check"></i><b>1</b> Overview</a>
 <ul>
 <li class="chapter" data-level="1.1" data-path="overview.html"><a href="overview.html#packages"><i class="fa fa-check"></i><b>1.1</b> Packages</a></li>
@@ -160,7 +163,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <div class="body-inner">
         <div class="book-header" role="navigation">
           <h1>
-            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./"></a>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Explore GEO</a>
           </h1>
         </div>
 
@@ -170,15 +173,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
             <section class="normal" id="section-">
 <div id="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record" class="section level1 hasAnchor" number="4">
 <h1><span class="header-section-number">Chapter 4</span> Q3. How many samples are there? What type of data is associated with the record?<a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record" class="anchor-section" aria-label="Anchor link to header"></a></h1>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb15-1" tabindex="-1"></a>like_sql <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="fu">paste0</span>(<span class="st">&quot;series_id LIKE &#39;%&quot;</span>, gse_ids, <span class="st">&quot;%&#39; OR&quot;</span>), <span class="at">collapse =</span> <span class="st">&quot; &quot;</span>)</span>
-<span id="cb15-2"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb15-2" tabindex="-1"></a>like_sql <span class="ot">&lt;-</span> <span class="fu">substr</span>(like_sql, <span class="dv">1</span>, <span class="fu">nchar</span>(like_sql)<span class="sc">-</span><span class="dv">3</span>)</span>
-<span id="cb15-3"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb15-3" tabindex="-1"></a>sql <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
-<span id="cb15-4"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb15-4" tabindex="-1"></a>  <span class="st">&quot;SELECT series_id, gsm, title, type, source_name_ch1, characteristics_ch1, label_ch1, treatment_protocol_ch1, source_name_ch2, characteristics_ch2, label_ch2, treatment_protocol_ch2, description&quot;</span>,</span>
-<span id="cb15-5"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb15-5" tabindex="-1"></a>  <span class="st">&quot;FROM gsm&quot;</span>,</span>
-<span id="cb15-6"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb15-6" tabindex="-1"></a>  <span class="st">&quot;WHERE&quot;</span>, like_sql, <span class="at">sep =</span> <span class="st">&quot; &quot;</span>)</span>
-<span id="cb15-7"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb15-7" tabindex="-1"></a>    </span>
-<span id="cb15-8"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb15-8" tabindex="-1"></a>all_gsm_attr <span class="ot">&lt;-</span> <span class="fu">dbGetQuery</span>(con, sql)</span>
-<span id="cb15-9"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb15-9" tabindex="-1"></a><span class="fu">table</span>(all_gsm_attr<span class="sc">$</span>series_id)</span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb16-1" tabindex="-1"></a>like_sql <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="fu">paste0</span>(<span class="st">&quot;series_id LIKE &#39;%&quot;</span>, gse_ids, <span class="st">&quot;%&#39; OR&quot;</span>), <span class="at">collapse =</span> <span class="st">&quot; &quot;</span>)</span>
+<span id="cb16-2"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb16-2" tabindex="-1"></a>like_sql <span class="ot">&lt;-</span> <span class="fu">substr</span>(like_sql, <span class="dv">1</span>, <span class="fu">nchar</span>(like_sql)<span class="sc">-</span><span class="dv">3</span>)</span>
+<span id="cb16-3"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb16-3" tabindex="-1"></a>sql <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
+<span id="cb16-4"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb16-4" tabindex="-1"></a>  <span class="st">&quot;SELECT series_id, gsm, title, type, source_name_ch1, characteristics_ch1, label_ch1, treatment_protocol_ch1, source_name_ch2, characteristics_ch2, label_ch2, treatment_protocol_ch2, description&quot;</span>,</span>
+<span id="cb16-5"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb16-5" tabindex="-1"></a>  <span class="st">&quot;FROM gsm&quot;</span>,</span>
+<span id="cb16-6"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb16-6" tabindex="-1"></a>  <span class="st">&quot;WHERE&quot;</span>, like_sql, <span class="at">sep =</span> <span class="st">&quot; &quot;</span>)</span>
+<span id="cb16-7"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb16-7" tabindex="-1"></a>    </span>
+<span id="cb16-8"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb16-8" tabindex="-1"></a>all_gsm_attr <span class="ot">&lt;-</span> <span class="fu">dbGetQuery</span>(con, sql)</span>
+<span id="cb16-9"><a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html#cb16-9" tabindex="-1"></a><span class="fu">table</span>(all_gsm_attr<span class="sc">$</span>series_id)</span></code></pre></div>
 <pre><code>## 
 ##           GSE162183           GSE166530           GSE186458 GSE201427,GSE201462 
 ##                   6                  41                 253                   8</code></pre>

@@ -4,24 +4,26 @@
 
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>Chapter 2 Q1. What type of data is it? Describe it | explore-geo.knit</title>
-  <meta name="description" content="" />
+  <title>Chapter 2 Q1. What type of data is it? Describe it | Explore GEO</title>
+  <meta name="description" content="In-class exercise for week 3." />
   <meta name="generator" content="bookdown 0.46 and GitBook 2.6.7" />
 
-  <meta property="og:title" content="Chapter 2 Q1. What type of data is it? Describe it | explore-geo.knit" />
+  <meta property="og:title" content="Chapter 2 Q1. What type of data is it? Describe it | Explore GEO" />
   <meta property="og:type" content="book" />
   
-  
+  <meta property="og:description" content="In-class exercise for week 3." />
   
 
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Chapter 2 Q1. What type of data is it? Describe it | explore-geo.knit" />
+  <meta name="twitter:title" content="Chapter 2 Q1. What type of data is it? Describe it | Explore GEO" />
   
-  
+  <meta name="twitter:description" content="In-class exercise for week 3." />
   
 
+<meta name="author" content="Megan Ding" />
 
 
+<meta name="date" content="2026-02-01" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -139,6 +141,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><a href="./">Week 3 Explore GEO</a></li>
 
 <li class="divider"></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Welcome</a></li>
 <li class="chapter" data-level="1" data-path="overview.html"><a href="overview.html"><i class="fa fa-check"></i><b>1</b> Overview</a>
 <ul>
 <li class="chapter" data-level="1.1" data-path="overview.html"><a href="overview.html#packages"><i class="fa fa-check"></i><b>1.1</b> Packages</a></li>
@@ -160,7 +163,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <div class="body-inner">
         <div class="book-header" role="navigation">
           <h1>
-            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./"></a>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Explore GEO</a>
           </h1>
         </div>
 
@@ -170,21 +173,21 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
             <section class="normal" id="section-">
 <div id="q1.-what-type-of-data-is-it-describe-it" class="section level1 hasAnchor" number="2">
 <h1><span class="header-section-number">Chapter 2</span> Q1. What type of data is it? Describe it<a href="q1.-what-type-of-data-is-it-describe-it.html#q1.-what-type-of-data-is-it-describe-it" class="anchor-section" aria-label="Anchor link to header"></a></h1>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-1" tabindex="-1"></a>vect2sql <span class="ot">&lt;-</span> <span class="cf">function</span>(x){</span>
-<span id="cb13-2"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-2" tabindex="-1"></a>  <span class="fu">paste</span>(<span class="st">&quot;(&#39;&quot;</span>, <span class="fu">paste</span>(x, <span class="at">collapse =</span> <span class="st">&quot;&#39;,&#39;&quot;</span>), <span class="st">&quot;&#39;)&quot;</span>, </span>
-<span id="cb13-3"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-3" tabindex="-1"></a>                 <span class="at">sep =</span> <span class="st">&quot;&quot;</span>)</span>
-<span id="cb13-4"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-4" tabindex="-1"></a>}</span>
-<span id="cb13-5"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-5" tabindex="-1"></a>gse_ids <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;GSE201427&quot;</span>,<span class="st">&quot;GSE166530&quot;</span>,<span class="st">&quot;GSE162183&quot;</span>,<span class="st">&quot;GSE186458&quot;</span>)</span>
-<span id="cb13-6"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-6" tabindex="-1"></a>gse_sql <span class="ot">&lt;-</span> <span class="fu">vect2sql</span>(gse_ids)</span>
-<span id="cb13-7"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-7" tabindex="-1"></a><span class="co"># dbListTables(con)</span></span>
-<span id="cb13-8"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-8" tabindex="-1"></a></span>
-<span id="cb13-9"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-9" tabindex="-1"></a><span class="co"># dbListFields(con, &#39;gpl&#39;)</span></span>
-<span id="cb13-10"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-10" tabindex="-1"></a></span>
-<span id="cb13-11"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-11" tabindex="-1"></a>sql <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
-<span id="cb13-12"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-12" tabindex="-1"></a>  <span class="st">&quot;SELECT DISTINCT gse_gpl.gse, gse_gpl.gpl, gse.title&quot;</span>,</span>
-<span id="cb13-13"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-13" tabindex="-1"></a>  <span class="st">&quot;FROM gse JOIN gse_gpl ON gse_gpl.gse = gse.gse&quot;</span>,</span>
-<span id="cb13-14"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-14" tabindex="-1"></a>  <span class="st">&quot;WHERE gse.gse IN&quot;</span>, gse_sql, <span class="at">sep =</span> <span class="st">&quot; &quot;</span>)</span>
-<span id="cb13-15"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb13-15" tabindex="-1"></a>series <span class="ot">&lt;-</span> <span class="fu">dbGetQuery</span>(con, sql)</span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-1" tabindex="-1"></a>vect2sql <span class="ot">&lt;-</span> <span class="cf">function</span>(x){</span>
+<span id="cb14-2"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-2" tabindex="-1"></a>  <span class="fu">paste</span>(<span class="st">&quot;(&#39;&quot;</span>, <span class="fu">paste</span>(x, <span class="at">collapse =</span> <span class="st">&quot;&#39;,&#39;&quot;</span>), <span class="st">&quot;&#39;)&quot;</span>, </span>
+<span id="cb14-3"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-3" tabindex="-1"></a>                 <span class="at">sep =</span> <span class="st">&quot;&quot;</span>)</span>
+<span id="cb14-4"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-4" tabindex="-1"></a>}</span>
+<span id="cb14-5"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-5" tabindex="-1"></a>gse_ids <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;GSE201427&quot;</span>,<span class="st">&quot;GSE166530&quot;</span>,<span class="st">&quot;GSE162183&quot;</span>,<span class="st">&quot;GSE186458&quot;</span>)</span>
+<span id="cb14-6"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-6" tabindex="-1"></a>gse_sql <span class="ot">&lt;-</span> <span class="fu">vect2sql</span>(gse_ids)</span>
+<span id="cb14-7"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-7" tabindex="-1"></a><span class="co"># dbListTables(con)</span></span>
+<span id="cb14-8"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-8" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-9" tabindex="-1"></a><span class="co"># dbListFields(con, &#39;gpl&#39;)</span></span>
+<span id="cb14-10"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-10" tabindex="-1"></a></span>
+<span id="cb14-11"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-11" tabindex="-1"></a>sql <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
+<span id="cb14-12"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-12" tabindex="-1"></a>  <span class="st">&quot;SELECT DISTINCT gse_gpl.gse, gse_gpl.gpl, gse.title&quot;</span>,</span>
+<span id="cb14-13"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-13" tabindex="-1"></a>  <span class="st">&quot;FROM gse JOIN gse_gpl ON gse_gpl.gse = gse.gse&quot;</span>,</span>
+<span id="cb14-14"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-14" tabindex="-1"></a>  <span class="st">&quot;WHERE gse.gse IN&quot;</span>, gse_sql, <span class="at">sep =</span> <span class="st">&quot; &quot;</span>)</span>
+<span id="cb14-15"><a href="q1.-what-type-of-data-is-it-describe-it.html#cb14-15" tabindex="-1"></a>series <span class="ot">&lt;-</span> <span class="fu">dbGetQuery</span>(con, sql)</span></code></pre></div>
 <p>GSE186458, GSE166530, GSE162183: Illumina NovaSeq 6000 (Homo sapiens), high-throughput sequencing (RNA-seq)</p>
 <p>GSE201427: Illumina HiSeq 4000 (Homo sapiens), high-throughput sequencing (RNA-seq)</p>
 

@@ -4,24 +4,26 @@
 
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>Chapter 6 Q5. Can you find out any information about the GEO dataset - GSE264108. Why or Why not? | explore-geo.knit</title>
-  <meta name="description" content="" />
+  <title>Chapter 6 Q5. Can you find out any information about the GEO dataset - GSE264108. Why or Why not? | Explore GEO</title>
+  <meta name="description" content="In-class exercise for week 3." />
   <meta name="generator" content="bookdown 0.46 and GitBook 2.6.7" />
 
-  <meta property="og:title" content="Chapter 6 Q5. Can you find out any information about the GEO dataset - GSE264108. Why or Why not? | explore-geo.knit" />
+  <meta property="og:title" content="Chapter 6 Q5. Can you find out any information about the GEO dataset - GSE264108. Why or Why not? | Explore GEO" />
   <meta property="og:type" content="book" />
   
-  
+  <meta property="og:description" content="In-class exercise for week 3." />
   
 
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Chapter 6 Q5. Can you find out any information about the GEO dataset - GSE264108. Why or Why not? | explore-geo.knit" />
+  <meta name="twitter:title" content="Chapter 6 Q5. Can you find out any information about the GEO dataset - GSE264108. Why or Why not? | Explore GEO" />
   
-  
+  <meta name="twitter:description" content="In-class exercise for week 3." />
   
 
+<meta name="author" content="Megan Ding" />
 
 
+<meta name="date" content="2026-02-01" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -139,6 +141,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><a href="./">Week 3 Explore GEO</a></li>
 
 <li class="divider"></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Welcome</a></li>
 <li class="chapter" data-level="1" data-path="overview.html"><a href="overview.html"><i class="fa fa-check"></i><b>1</b> Overview</a>
 <ul>
 <li class="chapter" data-level="1.1" data-path="overview.html"><a href="overview.html#packages"><i class="fa fa-check"></i><b>1.1</b> Packages</a></li>
@@ -160,7 +163,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <div class="body-inner">
         <div class="book-header" role="navigation">
           <h1>
-            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./"></a>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Explore GEO</a>
           </h1>
         </div>
 
@@ -170,11 +173,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
             <section class="normal" id="section-">
 <div id="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not" class="section level1 hasAnchor" number="6">
 <h1><span class="header-section-number">Chapter 6</span> Q5. Can you find out any information about the GEO dataset - GSE264108. Why or Why not?<a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not" class="anchor-section" aria-label="Anchor link to header"></a></h1>
-<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb23-1" tabindex="-1"></a>sql <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
-<span id="cb23-2"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb23-2" tabindex="-1"></a>  <span class="st">&quot;SELECT DISTINCT *&quot;</span>,</span>
-<span id="cb23-3"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb23-3" tabindex="-1"></a>  <span class="st">&quot;FROM gse&quot;</span>,</span>
-<span id="cb23-4"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb23-4" tabindex="-1"></a>  <span class="st">&quot;WHERE gse LIKE &#39;%GSE264108%&#39;&quot;</span>, <span class="at">sep =</span> <span class="st">&quot; &quot;</span>)</span>
-<span id="cb23-5"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb23-5" tabindex="-1"></a><span class="fu">dbGetQuery</span>(con, sql)</span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb24-1" tabindex="-1"></a>sql <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
+<span id="cb24-2"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb24-2" tabindex="-1"></a>  <span class="st">&quot;SELECT DISTINCT *&quot;</span>,</span>
+<span id="cb24-3"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb24-3" tabindex="-1"></a>  <span class="st">&quot;FROM gse&quot;</span>,</span>
+<span id="cb24-4"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb24-4" tabindex="-1"></a>  <span class="st">&quot;WHERE gse LIKE &#39;%GSE264108%&#39;&quot;</span>, <span class="at">sep =</span> <span class="st">&quot; &quot;</span>)</span>
+<span id="cb24-5"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb24-5" tabindex="-1"></a><span class="fu">dbGetQuery</span>(con, sql)</span></code></pre></div>
 <pre><code>##  [1] ID                   title                gse                 
 ##  [4] status               submission_date      last_update_date    
 ##  [7] pubmed_id            summary              type                
@@ -182,16 +185,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 ## [13] repeats              repeats_sample_list  variable            
 ## [16] variable_description contact              supplementary_file  
 ## &lt;0 rows&gt; (or 0-length row.names)</code></pre>
-<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb25-1" tabindex="-1"></a>sql <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
-<span id="cb25-2"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb25-2" tabindex="-1"></a>  <span class="st">&quot;SELECT DISTINCT *&quot;</span>,</span>
-<span id="cb25-3"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb25-3" tabindex="-1"></a>  <span class="st">&quot;FROM gse_gpl&quot;</span>,</span>
-<span id="cb25-4"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb25-4" tabindex="-1"></a>  <span class="st">&quot;WHERE gse LIKE &#39;%GSE264108%&#39;&quot;</span>, <span class="at">sep =</span> <span class="st">&quot; &quot;</span>)</span>
-<span id="cb25-5"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb25-5" tabindex="-1"></a><span class="fu">dbGetQuery</span>(con, sql)</span></code></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb26-1" tabindex="-1"></a>sql <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
+<span id="cb26-2"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb26-2" tabindex="-1"></a>  <span class="st">&quot;SELECT DISTINCT *&quot;</span>,</span>
+<span id="cb26-3"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb26-3" tabindex="-1"></a>  <span class="st">&quot;FROM gse_gpl&quot;</span>,</span>
+<span id="cb26-4"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb26-4" tabindex="-1"></a>  <span class="st">&quot;WHERE gse LIKE &#39;%GSE264108%&#39;&quot;</span>, <span class="at">sep =</span> <span class="st">&quot; &quot;</span>)</span>
+<span id="cb26-5"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb26-5" tabindex="-1"></a><span class="fu">dbGetQuery</span>(con, sql)</span></code></pre></div>
 <pre><code>## [1] gse gpl
 ## &lt;0 rows&gt; (or 0-length row.names)</code></pre>
-<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb27-1" tabindex="-1"></a>sql <span class="ot">&lt;-</span> <span class="st">&quot;SELECT submission_date FROM gse&quot;</span></span>
-<span id="cb27-2"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb27-2" tabindex="-1"></a>dates <span class="ot">&lt;-</span> <span class="fu">dbGetQuery</span>(con, sql)</span>
-<span id="cb27-3"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb27-3" tabindex="-1"></a><span class="fu">max</span>(dates[[<span class="dv">1</span>]])</span></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb28-1" tabindex="-1"></a>sql <span class="ot">&lt;-</span> <span class="st">&quot;SELECT submission_date FROM gse&quot;</span></span>
+<span id="cb28-2"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb28-2" tabindex="-1"></a>dates <span class="ot">&lt;-</span> <span class="fu">dbGetQuery</span>(con, sql)</span>
+<span id="cb28-3"><a href="q5.-can-you-find-out-any-information-about-the-geo-dataset---gse264108.-why-or-why-not.html#cb28-3" tabindex="-1"></a><span class="fu">max</span>(dates[[<span class="dv">1</span>]])</span></code></pre></div>
 <pre><code>## [1] &quot;2024-02-29&quot;</code></pre>
 <p>None of the tables have GSE264108 in them. This is because this GSE became public on Jan 25, 2025, but the oldest GSE in the database is from Feb 29, 2024. This gets at the issue with this method of querying GEO as we rely on a static instance of the database that may be almost 2 years out of date.</p>
 

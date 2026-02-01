@@ -5,6 +5,7 @@ language:
   ui:
     chapter_name: "Chapter "
 rmd_files:
+  - index.Rmd
   - 01-overview.Rmd
   - 02-Q1.Rmd
   - 03-Q2.Rmd

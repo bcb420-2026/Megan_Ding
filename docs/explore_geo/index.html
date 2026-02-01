@@ -4,18 +4,18 @@
 
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>Chapter 3 Q2. What disease or model is it using? | Explore GEO</title>
+  <title>Explore GEO</title>
   <meta name="description" content="In-class exercise for week 3." />
   <meta name="generator" content="bookdown 0.46 and GitBook 2.6.7" />
 
-  <meta property="og:title" content="Chapter 3 Q2. What disease or model is it using? | Explore GEO" />
+  <meta property="og:title" content="Explore GEO" />
   <meta property="og:type" content="book" />
   
   <meta property="og:description" content="In-class exercise for week 3." />
   
 
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Chapter 3 Q2. What disease or model is it using? | Explore GEO" />
+  <meta name="twitter:title" content="Explore GEO" />
   
   <meta name="twitter:description" content="In-class exercise for week 3." />
   
@@ -30,8 +30,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   
   
-<link rel="prev" href="q1.-what-type-of-data-is-it-describe-it.html"/>
-<link rel="next" href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html"/>
+
+<link rel="next" href="overview.html"/>
 <script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
 <link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
@@ -171,17 +171,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
           <div class="page-inner">
 
             <section class="normal" id="section-">
-<div id="q2.-what-disease-or-model-is-it-using" class="section level1 hasAnchor" number="3">
-<h1><span class="header-section-number">Chapter 3</span> Q2. What disease or model is it using?<a href="q2.-what-disease-or-model-is-it-using.html#q2.-what-disease-or-model-is-it-using" class="anchor-section" aria-label="Anchor link to header"></a></h1>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="q2.-what-disease-or-model-is-it-using.html#cb15-1" tabindex="-1"></a>sql <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
-<span id="cb15-2"><a href="q2.-what-disease-or-model-is-it-using.html#cb15-2" tabindex="-1"></a>  <span class="st">&quot;SELECT DISTINCT gse, overall_design, variable, variable_description, pubmed_id, summary&quot;</span>,</span>
-<span id="cb15-3"><a href="q2.-what-disease-or-model-is-it-using.html#cb15-3" tabindex="-1"></a>  <span class="st">&quot;FROM gse&quot;</span>,</span>
-<span id="cb15-4"><a href="q2.-what-disease-or-model-is-it-using.html#cb15-4" tabindex="-1"></a>  <span class="st">&quot;WHERE gse IN&quot;</span>, gse_sql, <span class="at">sep =</span> <span class="st">&quot; &quot;</span>)</span>
-<span id="cb15-5"><a href="q2.-what-disease-or-model-is-it-using.html#cb15-5" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">dbGetQuery</span>(con, sql)</span></code></pre></div>
-<p>GSE162183: Single cell RNA-seq study of human psoriasis skin.</p>
-<p>GSE166530: Differential expression analysis of RNA-Seq data from COVID-19 positive samples against COVID-19 negative control.</p>
-<p>GSE186458: Genome-wide patterns of DNA methylation across a variety of cell types in healthy adults.</p>
-<p>GSE201427: Panc1 cells were treated either with control siRNA (siCtrl) or siRNA targeting SF3B1 (siSF3B1). siCtrl cells were exposed to 1% O2 or 21% O2, siSF3B1 cells to 1% O2 for 8 hours. 1% O2 mimics hypoxia.</p>
+<div id="header">
+<h1 class="title">Explore GEO</h1>
+<p class="author"><em>Megan Ding</em></p>
+<p class="date"><em>2026-02-01</em></p>
+</div>
+<div id="welcome" class="section level1 unnumbered hasAnchor">
+<h1>Welcome<a href="index.html#welcome" class="anchor-section" aria-label="Anchor link to header"></a></h1>
+<p>These are my answers to the in-class exercise for week 3.</p>
+<p>Build this book by running in R (assuming you’re in the directory with all of the Rmd files):</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="index.html#cb1-1" tabindex="-1"></a>bookdown<span class="sc">::</span><span class="fu">render_book</span>(<span class="st">&quot;.&quot;</span>)</span></code></pre></div>
 
 </div>
             </section>
@@ -189,8 +188,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
           </div>
         </div>
       </div>
-<a href="q1.-what-type-of-data-is-it-describe-it.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
-<a href="q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+
+<a href="overview.html" class="navigation navigation-next navigation-unique" aria-label="Next page"><i class="fa fa-angle-right"></i></a>
     </div>
   </div>
 <script src="libs/gitbook-2.6.7/js/app.min.js"></script>
