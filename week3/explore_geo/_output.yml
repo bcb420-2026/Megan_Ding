@@ -7,8 +7,6 @@ bookdown::gitbook:
       collapse: subsection
       before: |
         <li><a href="./">Week 3 Explore GEO</a></li>
-  includes:
-    in_header: header.html
 bookdown::pdf_book:
   toc: true
   number_sections: true

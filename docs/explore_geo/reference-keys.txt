@@ -1,5 +1,8 @@
 overview
 packages
+sqlite-database
+connect-to-the-database
+explore-tables-and-fields
 q1.-what-type-of-data-is-it-describe-it
 q2.-what-disease-or-model-is-it-using
 q3.-how-many-samples-are-there-what-type-of-data-is-associated-with-the-record

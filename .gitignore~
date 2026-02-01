@@ -1,5 +1,5 @@
 GEOmetadb.sqlite
-
+/data/
 # Basic Jekyll gitignores (synchronize to Jekyll.gitignore)
 _site/
 .sass-cache/
@@ -58,8 +58,6 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-# pkgdown site
-docs/
 
 # translation temp files
 po/*~
