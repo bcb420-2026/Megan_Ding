@@ -1,0 +1,1152 @@
+---
+title: "Assignment 1: Cleaning, normalization, and sex-specific differential expression analysis of whole blood RNA-seq data from major depressive disorder cases and controls"
+author: "Megan Ding"
+date: "2026-02-10"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    fig_caption: true
+    df_print: paged 
+    code_folding: hide
+bibliography: ./A1/A1_references.bib
+nocite: '@*'
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+```
+
+
+```{r, error=FALSE, results='hide'}
+library(GEOquery)
+library(edgeR)
+library(ggplot2)
+library(reshape2)
+library(tidyr)
+library(tibble)
+library(dplyr)
+library(biomaRt)
+library(knitr)
+library(kableExtra)
+library(scales)
+library(ComplexHeatmap)
+if (!requireNamespace("UpSetR", quietly = TRUE))
+  install.packages("UpSetR")
+library(UpSetR)
+if (!requireNamespace("rockchalk", quietly = TRUE))
+  install.packages("rockchalk")
+library(rockchalk)
+if (!requireNamespace("ggrepel", quietly = TRUE))
+  install.packages("ggrepel")
+library(ggrepel)
+
+if (!requireNamespace("RRHO", quietly = TRUE)){
+  BiocManager::install("RRHO")
+}
+library(RRHO)
+
+# From Isserlin 2026 (week 5 normalization supp_functions.R)
+kable_head <- function(x, n = 5, caption = NULL) {
+  knitr::kable(utils::head(x, n), caption = caption)
+}
+```
+
+# Introduction {#introduction}
+
+At the beginning of the millenium, major depressive disorder (MDD) was the worldwide leading cause of disability [@ustun2004]. With a lifetime prevalence of up to 19%, MDD is twice as common in females than in males [@shorey2022]. Diagnostic symptoms include persistent depressed mood, feelings of guilt or worthlessness, low energy, poor concentration, change in appetite and sleep, and psychomotor retardation [@apa2013]. As MDD prevalence increases year over year, understanding the biological etiology of the complex disorder is more important than ever [@shorey2022]. 
+
+Specifically, the immune system has been shown to exhibit to sex specific disturbances in people with MDD. The paper *Using multiomic integration to improve blood biomarkers of major depressive disorder: a case-control study* [@mokhtari2025] delves into this topic and uses mRNA, miRNA, and DNA methylation levels to characterize the molecular architecture underlying MDD in a sex stratified approach. We focus on the mRNA data collected as an exercise to see the strength of the transcriptomic signal for MDD in whole blood.
+
+# Expression Data Set Characteristics
+
+The bulk mRNA-seq data was deposited in the Gene Expression Omnibus (GEO) with accession GSE251778 [@mokhtari2025]. The authors did not deposit the participants' BMIs, ages, and Hamilton Depression Rating Scale scores in a metadata file, likely due to confidentiality concerns. We will just extract the sex and case/control status of the samples from their GSM titles.
+
+```{r, message=FALSE, warning=FALSE}
+gse_id <- "GSE251778"
+# retrieve data from GEO
+gse <- getGEO(gse_id, GSEMatrix = FALSE)
+
+# extract sex and condition from gsm title
+sample_metadata <- sapply(gse@gsms, function(x){
+  title <- x@header$title
+  characteristics <- strsplit(title, "-")[[1]]
+  return(c(paste0("X", characteristics[4], "_rna"), characteristics[4],
+           characteristics[2], characteristics[3]))
+})
+
+# format metadata dataframe and add some columns to show sex x condition status
+sample_metadata <- as.data.frame(t(sample_metadata))
+colnames(sample_metadata) <- c("sample_id", "sample_no", "condition", "sex")
+sample_metadata$sample_name <- paste(sample_metadata$sample_no, sample_metadata$condition, sample_metadata$sex, sep = "_")
+sample_metadata$cond_sex <- paste(sample_metadata$condition, sample_metadata$sex, sep = "_")
+
+```
+
+The raw counts were retrieved as demonstrated in the "id_mapping" exercise (using getGEOSuppFiles and checking to see if the data file already exists before downloading) [@isserlin2026]. The raw count matrix has 52237 genes x 169 samples.
+
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+# dataset filenames
+sfilenames <- getGEOSuppFiles(gse_id, fetch_files = FALSE)
+
+data_filename <- sfilenames$fname[1]
+#data_filename <- "GSE251778_Mokhtari_rna_counts.csv.gz"
+download_dir <- file.path(getwd())
+
+# check if the file exists before downloading
+if(!file.exists(file.path(download_dir, gse_id, data_filename))){
+  sfiles = getGEOSuppFiles(gse_id,
+                           baseDir = download_dir, 
+                           fetch_files = TRUE)
+}
+
+# read in counts csv 
+mdd_data <- read.table(
+  file.path(download_dir, gse_id, data_filename),
+  header=TRUE,
+  sep=",")
+
+# clean up dataframe
+rownames(mdd_data) <- mdd_data$gene_ID
+mdd_data <- mdd_data[, -c(1, 2)]
+sample_metadata <- sample_metadata[match(colnames(mdd_data),
+                                                sample_metadata$sample_id), ]
+colnames(mdd_data) <- sample_metadata$sample_name
+
+# 52237 x 169
+dim(mdd_data)
+```
+
+# Count Cleaning
+
+```{r, fig.cap='Figure 1. Box plots of the raw counts for the samples with the highest and lowest variance and mean.'}
+
+# 169 samples is too many to effectively visualize, so we'll just present the box plots for the samples with the highest, lowest mean and variance
+
+# code adapted from Isserlin 2026 (week 5 normalization supp_functions.R)
+
+plot_box_sample <- function(mat, main = "", ylab = "log2(counts+1)") {
+  # find variances and means
+  vars <- apply(mat, MARGIN = 2, var)
+  means <- colMeans(mat)
+  
+  # put highest and lowest means and variances in a df
+  df <- as.data.frame(mat[, c(which.min(means), which.max(means), which.min(vars), which.max(vars))])
+  colnames(df) <- paste0(c("Lowest Mean (", "Highest Mean (",
+                           "Lowest Variance (", "Highest Variance ("),
+                            colnames(df), ")")
+  
+  # convert data matrix into ggplot friendly long format
+  df_long <- df |>
+    mutate(gene = rownames(df)) |>
+    pivot_longer(-gene, names_to = "sample", values_to = "value") |>
+    mutate(value = log2(value + 1))
+  
+  # box plotting
+  ggplot(df_long, aes(x = sample, y = value)) +
+    geom_boxplot(outlier.size = 0.2) +
+    theme_bw() +
+    labs(title = main, x = "Sample", y = ylab) +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, 
+                                     size = 5))
+}
+
+
+plot_box_sample(mdd_data)
+```
+
+As expected, the count data were very zero-inflated, which was reflected in the median of all samples being 0.
+
+There were pretty similar summary stats across samples. This is good because it suggests that there are no major outliers sample-wise. One sample having the lowest mean and variance suggests a mean-variance trend that we may want to tame with our normalization.
+
+## Filter Out Low Counts
+### {#filter-out-low-counts}
+Our first step was to filter out lowly expressed genes. We wanted to do this in a design-aware manner, so we defined a design matrix with condition, sex, and condition:sex as features.
+```{r}
+# edgeR design matrix 
+design <- model.matrix(~ 0 + condition*sex, data = sample_metadata)
+
+rownames(design) <- sample_metadata$sample_name
+kable_head(design[c(seq(1, nrow(design), by = 16)),], caption = "Table 1. A sample of the design matrix used in our analysis.", n = 10)
+```
+
+Then, we counts per million (CPM) transformed our data before filtering out lowly expressed genes. This way we can avoid filtering out ubiquitously, but lowly expressed genes.
+
+```{r}
+# cpm transformation
+mdd_cpm <- cpm(y = mdd_data)
+```
+
+
+```{r, fig.cap='Figure 2. Box plots of the filtered CPM for the samples with the highest and lowest variance and mean.'}
+to_remove <- edgeR::filterByExpr(mdd_cpm, min.count = 3, design = design)
+cpm_filtered <- mdd_cpm[to_remove,]
+
+plot_box_sample(cpm_filtered, main = "CPM filtered out lowly expressed - \n - with design matrix", ylab = "log2(CPM+1)")
+```
+```{r, results='hide'}
+leverage <- hat(design)
+min(1/leverage)
+```
+
+CPM filtering removed 39698 genes, leaving 12539, where we chose a conservative minimum count of 3 in at least the minimum inverse leverage computed from the design matrix (30).
+
+Compared to the pre-filtering data, the filtered plots were a lot less zero-inflated. There were still pretty uniform aggregated gene summary stats across samples.
+
+## Duplicates
+### {#duplicates}
+
+```{r, results='hide'}
+# pre count filtering
+# check if any gene expressions are duplicated across samples
+dup_rows <- mdd_data[duplicated(mdd_data) | duplicated(mdd_data, fromLast = TRUE),]
+
+# 8834 rows
+dim(dup_rows)
+# total sum is 10834 across 8834 rows (very sparse)
+sum(dup_rows)
+non_zero_indices <- which(dup_rows != 0, arr.ind = TRUE)
+
+# check if any sample gene expressions are duplicated across genes
+dup_cols <- mdd_data[, duplicated(t(mdd_data))]
+
+# 0 rows
+dim(dup_cols)
+```
+
+```{r, fig.cap='Figure 3. Heatmap of all duplicate rows in the raw count data. Rows are genes and columns are samples. White = low, Blue = high.'}
+image(as.matrix(dup_rows), col = colorRampPalette(c("white", "blue"))(10), 
+      axes = TRUE)
+```
+
+There were no duplicated columns (samples) in this dataset, but there were 8834 duplicated rows in the pre-count-filtered dataset. 
+
+Fig. 3 shows the duplicate rows in the unfiltered counts as a heatmap. It's hard to see anything except for a few blue specks. This shows us the the duplicate rows are not likely due to data mishandling, but because the zero-inflated nature and minimal range of the data made the likelihood of duplicate rows higher than if the data were truly uniformly distributed over the natural numbers. 
+
+```{r, results='hide'}
+# post count filtering
+
+dup_rows <- cpm_filtered[duplicated(cpm_filtered) | duplicated(cpm_filtered, fromLast = TRUE),]
+# 0 rows
+dim(dup_rows)
+sum(dup_rows)
+# check if any sample gene expressions are duplicated across genes
+dup_cols <- cpm_filtered[, duplicated(t(cpm_filtered))]
+# 0 rows
+dim(dup_cols)
+```
+
+After count filtering, there were neither duplicate rows nor columns.
+
+## Gene ID Mapping
+### {#gene-id-mapping}
+
+We then mapped the Ensemble gene IDs to HUGO symbols since we may have to throw-out or merge some genes due to mapping issues and we didn't want excluded genes to impact down-stream normalization.
+
+Ensembl gene IDs were mapped to HUGO symbols as described in the "id_mapping" exercise [@isserlin2026]. 
+
+Mapping with pre-filtering data: 
+
+```{r, results='hide'}
+# check if any genes have versions -> none have versions
+any(grepl("\\.", rownames(mdd_data)))
+ensembl_mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+# check any genes duplicated -> nope
+any(duplicated(rownames(mdd_data)))
+
+# biomart query to get gene mappings
+map <- getBM(
+    attributes = c("ensembl_gene_id", "hgnc_symbol", 
+                   "gene_biotype"),
+    filters = "ensembl_gene_id",
+    values = rownames(mdd_data),
+    mart = ensembl_mart
+)
+
+# genes in dataset that aren't in biomart
+not_in_mart <- rownames(mdd_data)[!(rownames(mdd_data) %in%
+                                      map$ensembl_gene_id)]
+
+# genes in dataset that don't have symbol but are in biomart
+no_map <- map[map$hgnc_symbol == "", ]
+
+# genes that have symbol
+map <-  map[map$hgnc_symbol != "", ]
+
+# ensembl genes that map to multiple symbols
+dups_ens <- map[map$ensembl_gene_id %in%
+    map$ensembl_gene_id[duplicated(map$ensembl_gene_id)], ]
+
+# symbols that map to multiple ensembl ids
+dups_hgnc <- map[map$hgnc_symbol %in%
+    map$hgnc_symbol[duplicated(map$hgnc_symbol)], ]
+
+# well behaved ensembl ids that map 1 to 1 to symbols
+map_1to1 <- map[!(map$ensembl_gene_id %in%
+    map$ensembl_gene_id[duplicated(map$ensembl_gene_id)]) &
+      !(map$hgnc_symbol %in%
+    map$hgnc_symbol[duplicated(map$hgnc_symbol)]),]
+
+# try to understand the function/identity of the ids that do/don't map nicely 
+get_biotype_tabulation <- function(df, category = "no HUGO mapping"){
+  # set levels of biotypes to include all of the ones that I'm interested in
+  df$gene_biotype <- factor(df$gene_biotype, levels = unique(c(df$gene_biotype, "protein_coding", "artifact", "lncRNA", "miRNA", "RNA", "TR_", "IG_", "pseudogene", "TEC")))
+  
+  # get counts of each biotype
+  tabu <- table(df$gene_biotype)
+  
+  # return counts of broad biotype categories
+  return(data.frame(category = category, `protein coding` = tabu["protein_coding"], artifact = tabu["artifact"], `IG gene` = sum(tabu[grep("IG_", names(tabu))]), `TR gene` = sum(tabu[grep("TR_", names(tabu))]), lncRNA = tabu["lncRNA"], miRNA = tabu["miRNA"], `other RNA` = sum(tabu[grep("RNA", names(tabu))]) - tabu["lncRNA"] - tabu["miRNA"], `other pseudogene` = sum(tabu[grepl("pseudogene", names(tabu)) & !(grepl("TR_", names(tabu))) & !grepl("IG_", names(tabu)) & !grepl("RNA", names(tabu))]), `to be experimentally confirmed` = tabu["TEC"], `total unique ensembl gene ids` = length(unique(df$ensembl_gene_id)), `total unique HUGO gene ids` = length(unique(df$hgnc_symbol[df$hgnc_symbol != ""]))))
+}
+
+# manually instantiate the row for the not in biomart category
+mapping_df <- data.frame(category = "not in mart", `protein coding` = NA, artifact = NA, `IG gene` = NA, `TR gene` = NA, lncRNA = NA, miRNA = NA, `other RNA` = NA, `other pseudogene` = NA, `to be experimentally confirmed` = NA, `total unique ensembl gene ids` = length(not_in_mart), `total unique HUGO gene ids` = 0)
+
+# add rows for other categories
+mapping_df <- rbind(mapping_df, get_biotype_tabulation(map_1to1, "1 Ensemble to 1 HUGO"), get_biotype_tabulation(no_map, "No HUGO"), get_biotype_tabulation(dups_ens, "1 Ensemble to many HUGO"), get_biotype_tabulation(dups_hgnc, "1 HUGO to many Ensemble"))
+
+# reformat dataframe
+mapping_df <- t(mapping_df)
+colnames(mapping_df) <- mapping_df[1, ]
+mapping_df <- mapping_df[-1, ]
+```
+
+```{r}
+kable(mapping_df, col.names = colnames(mapping_df), escape = F, caption = "Table 2. Biotypes of the Ensembl gene IDs in the raw counts that are not in the BioMart, have 1 to 1 HUGO mappings, no HUGO mappings, many HUGO mappings, and non-unique identites as HUGO symbols.") %>%
+  kable_styling(latex_options = "hold_position")
+```
+
+
+Mapping with post-count-filtering data:
+
+```{r, results='hide'}
+# do the same thing as above, but for the post-filtering genes
+map <- getBM(
+    attributes = c("ensembl_gene_id", "hgnc_symbol", 
+                   "gene_biotype"),
+    filters = "ensembl_gene_id",
+    values = rownames(cpm_filtered),
+    mart = ensembl_mart
+)
+not_in_mart <- rownames(cpm_filtered)[!(rownames(cpm_filtered) %in%
+                                      map$ensembl_gene_id)]
+no_map <- map[map$hgnc_symbol == "", ]
+map <-  map[map$hgnc_symbol != "", ]
+dups_ens <- map[map$ensembl_gene_id %in%
+    map$ensembl_gene_id[duplicated(map$ensembl_gene_id)], ]
+dups_hgnc <- map[map$hgnc_symbol %in%
+    map$hgnc_symbol[duplicated(map$hgnc_symbol)], ]
+map_1to1 <- map[!(map$ensembl_gene_id %in%
+    map$ensembl_gene_id[duplicated(map$ensembl_gene_id)]) &
+      !(map$hgnc_symbol %in%
+    map$hgnc_symbol[duplicated(map$hgnc_symbol)]),]
+
+mapping_df <- data.frame(category = "not in mart", `protein coding` = NA, artifact = NA, `IG gene` = NA, `TR gene` = NA, lncRNA = NA, miRNA = NA, `other RNA` = NA, `other pseudogene` = NA, `to be experimentally confirmed` = NA, `total unique ensembl gene ids` = length(not_in_mart), `total unique HUGO gene ids` = 0)
+mapping_df <- rbind(mapping_df, get_biotype_tabulation(map_1to1, "1 Ensemble to 1 HUGO"), get_biotype_tabulation(no_map, "No HUGO"), get_biotype_tabulation(dups_ens, "1 Ensemble to many HUGO"), get_biotype_tabulation(dups_hgnc, "1 HUGO to many Ensemble"))
+mapping_df <- t(mapping_df)
+colnames(mapping_df) <- mapping_df[1, ]
+mapping_df <- mapping_df[-1, ]
+```
+
+```{r}
+kable(mapping_df, col.names = colnames(mapping_df), escape = F, caption = "Table 3. Biotypes of the Ensembl gene IDs in the filtered counts that are not in the BioMart, have 1 to 1 HUGO mappings, no HUGO mappings, many HUGO mappings, and non-unique identites as HUGO symbols") %>%
+  kable_styling(latex_options = "hold_position")
+```
+
+Filtering out lowly expressed genes helped decrease the number of Ensembl IDs that weren't in the database, the number of Ensembl IDs that didn't have a HUGO symbol, the number of Ensembl IDs that mapped to the same HUGO symbol, and removed the 1 Ensembl ID that maps to 2 HUGO symbols. 
+
+We kept the 383 Ensembl IDs that didn't have a HUGO symbol because even though many of these IDs are not for protein coding regions in the genome, we were still interested in the information that lncRNA expression, for example, may provide for MDD. The original study considered miRNA expression and DNA methylation in addition to mRNA expression and found that a multi-omic approach provided biomarkers more predictive of MDD status than a single-omic approach. Therefore, keeping unmapped Ensembl IDs was justified. 
+
+For the 2 Ensembl IDs that map to the same HUGO symbol, a quick search confirmed that ENSG00000168255 and ENSG00000285437 both refer to different splice variants of POLR2J3.
+
+```{r, results='hide'}
+# check how well these 2 expressions correlate
+dup_data <- cpm_filtered[rownames(cpm_filtered) %in% 
+                           dups_hgnc$ensembl_gene_id, ]
+cor(t(dup_data), method = "pearson")
+```
+
+These 2 Ensembl IDs had a Pearson's correlation coefficient of 0.68. This was not high enough to justify averaging the expressions or throwing one out, so we ultimately decided to keep the variable names as their Ensembl IDs. We noted that if ENSG00000168255 or ENSG00000285437 came up as interesting genes downstream, we could map them to POLR2J3.
+
+Overall, we still had 12539 genes after filtering out lowly expressed genes, 12154 of which had a HUGO symbol and 385 of which still had an Ensembl ID attached.
+
+## Normalization
+### {#normalization}
+
+We used the edgeR package and its Trimmed Mean of M-values (TMM) approach to normalize the CPMs [@edgeR]. This is because TMM is a widely used normalization technique that assumes most genes are not differentially expressed and scales sample counts according to their fold change in comparison to an average sample in the dataset [@evans2018]. The assumptions of TMM work well with the characteristics of this dataset as we assumed that there are not many strong MDD signals from whole blood bulk RNA-seq and because TMM seems to work well empirically for differential expression analysis.
+
+```{r}
+# create DGEList object from raw counts filtered by low CPM
+dge_filtered <- DGEList(counts = mdd_data[rownames(cpm_filtered), ],
+               group = sample_metadata$cond)
+
+# TMM normalize
+dge_filtered  <- calcNormFactors(dge_filtered , method = "TMM")
+
+# CPM transform
+norm_cpm <- cpm(dge_filtered, log = FALSE, prior.count = 1)
+
+```
+
+```{r, fig.cap='Figure 4. Box plots of the normalized filtered CPM for the samples with the highest and lowest variance and mean.'}
+plot_box_sample(norm_cpm)
+```
+
+Compared to the pre-normalization data, the normalized plots had a more consistent mean and spread across samples.
+
+```{r, fig.cap='Figure 5a. Multidimensional scaling (MDS) plot for the normalized CPM data coloured by MDD vs. control condition.'}
+current_colors <- RColorBrewer::brewer.pal(n = length(unique(sample_metadata$condition)), "Set2")
+names(current_colors) <- levels(factor(sample_metadata$condition))
+
+plotMDS(norm_cpm,
+  col = alpha(current_colors[sample_metadata$condition], 0.3),
+  main = "MDS plot (colored by MDD condition)", pch = 16
+)
+legend("topright",
+  legend = names(current_colors),
+  col = current_colors,
+  pch = 16,
+  bty = "n"
+)
+```
+
+
+```{r, fig.cap='Figure 5b. MDS plot for the normalized CPM data coloured by MDD vs. control condition by male vs. female sex.'}
+current_colors_sex_mdd <- RColorBrewer::brewer.pal(n = length(unique(sample_metadata[, "cond_sex"])), "Set1")
+names(current_colors_sex_mdd) <- levels(factor(sample_metadata$cond_sex))
+
+plotMDS(norm_cpm,
+  col = alpha(current_colors_sex_mdd[sample_metadata$cond_sex], 0.3),
+  main = "MDS plot (colored by Sex x Condition)",  pch = 16
+)
+legend("topright",
+  legend = names(current_colors_sex_mdd),
+  col = current_colors_sex_mdd,
+  pch = 16,
+  bty = "p"
+)
+
+```
+
+There was poor MDS separation by condition, but there was a notable separation by sex. This suggests that we may not get strong disease signals, but strong sex differentiating signals from our differential expression analysis (DEA).
+
+## Outlier Handling
+### {#outlier-handling}
+
+The original paper [@mokhtari2025] did not mention any outliers or outlier handling procedures. 
+ 
+```{r, results='hide'}
+# find outliers based on +- 1.5IQR criterion
+outliers_iqr <- function(x) {
+  Q1 <- quantile(x, 0.25, na.rm = TRUE)
+  Q3 <- quantile(x, 0.75, na.rm = TRUE)
+  IQR <- IQR(x, na.rm = TRUE)
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  
+  # return the outlier values
+  outlier_values <- x[x < lower_bound | x > upper_bound]
+  return(outlier_values)
+}
+
+# apply the outlier function to each column
+outliers_list <- apply(norm_cpm, MARGIN = 2, outliers_iqr)
+
+# get summary stats for the number of outliers per sample
+outlier_perc <- sapply(outliers_list, length)
+mean(outlier_perc)
+sd(outlier_perc)
+
+# get frequency of genes 
+out_genes <- table(unlist(sapply(outliers_list, names)))
+out_genes <- sort(out_genes, decreasing = TRUE)
+kable_head(out_genes, n = 20)
+count_out <- table(out_genes)
+
+```
+```{r, fig.cap='Figure 6. Bar plot of the number of genes that have some number of samples for which it is an outlier.'}
+barplot(count_out, xlab = "Number of samples for which the gene is an outlier",
+        ylab = "Number of genes")
+```
+
+There were, on average, 1334.1 outlier measurements per sample (standard deviation = 80.2), as pictured Fig. 6. There are 482 genes that are outliers in all 169 samples. Since the original paper did not seem to remove any outliers in their data processing and since we could not find a justification to exclude these points, we did not remove any outliers. 
+
+```{r, fig.cap='Figure 7. Densities of all sample gene filtered normalized CPM.'}
+
+# function taken from Isserlin 2026 (week 5 normalization)
+plot_density <- function(mat, main = "", xlab = "Normalized CPM") {
+  df <- as.data.frame(mat)
+  df_long <- df |>
+    mutate(gene = rownames(df)) |>
+    pivot_longer(-gene, names_to = "sample", values_to = "value") |>
+    mutate(value = log2(value + 1))
+  
+  ggplot(df_long, aes(x = value, colour = sample)) +
+    geom_density() +
+    theme_bw() +
+    labs(title = main, x = paste0("log2(", xlab, ")"), y = "Density") +
+    guides(colour = "none")
+}
+
+plot_density(norm_cpm)
+```
+
+Overall, in Fig. 7, the TMM normalized CPMs were more Gaussian than the raw counts. The final coverage of our normalized counts was 12539 genes from 169 participants.
+
+# Differential Gene Expression {#differential-gene-expression}
+
+We used this model:
+$$
+\text{counts} \sim \text{condition} * \text{sex}
+$$
+
+
+```{r}
+# contrasts need valid variable names
+colnames(design)[4] <- "conditionMDD_sexM"
+
+# make all sex x condition contrasts
+contr <- makeContrasts(
+  `F_MDDvF_ctrl` = (conditionMDD)*(1 - sexM) - (conditionControl)*(1 - sexM),
+  `M_MDDvM_ctrl` = conditionMDD_sexM - (conditionControl)*(sexM),
+  `MvF` = (sexM),
+  `MDDvctrl` = conditionMDD - conditionControl,
+  levels = design
+)
+
+dge_norm <- DGEList(counts = norm_cpm,
+               group = sample_metadata$condition)
+
+# Estimate dispersion and fit QL model
+edge <- edgeR::estimateDisp(dge_norm, design)
+fit <- edgeR::glmQLFit(edge, design)
+```
+
+
+```{r, fig.cap='Figure 8. BCV plot for our estimated gene expression dispersions.'}
+plotBCV(edge)
+```
+
+The biological coefficient of variance (BCV) was generally low, which suggests that the data were not very noisy, however the trend also didn't follow the data points very well.
+
+## Volcano plots
+### {#volcano-plots}
+
+We then plotted volcano plots for all of the contrasts [@isserlin2026].
+
+```{r, fig.cap='Figure 9. Volcano plots for all matched sex by condition contratsts from the quasi-likelihood model. Top 10 most significant genes are labeled.'}
+# function adapted from Isserlin 2026 (week 5 differential expression)
+volcano_plot_contr <- function(ft = fit, contrast = contr[, "MDDvctrl"], 
+                               plt_title = "MDD vs control"){
+  # calc LRT from given fit and contrast
+  qlf_mddvctrl <- edgeR::glmQLFTest(ft, contrast = contrast)
+  
+  # get all estimated gene changes and format
+  tab <- topTags(qlf_mddvctrl, n = Inf)$table %>%
+  rownames_to_column("ensembl_gene_id") %>%
+  mutate(
+    neglog10P = -log10(PValue),
+    direction = case_when(
+      FDR < 0.05 & logFC > 0 ~ "Up",
+      FDR < 0.05 & logFC < 0 ~ "Down",
+      TRUE ~ "Not sig"
+    )
+  )
+  count_up <- sum(tab$direction == "Up")
+  count_down <- sum(tab$direction == "Down")
+tab <- tab %>% left_join(map_1to1, by = "ensembl_gene_id") %>%
+  mutate(
+    # Use HGNC when available, otherwise fall back to Ensembl
+    display_name = ifelse(!is.na(hgnc_symbol) & hgnc_symbol != "",
+                          hgnc_symbol,
+                          ensembl_gene_id)
+  )
+# volcano plot!
+ggplot(tab, aes(x = logFC, y = neglog10P, label = display_name)) +
+  geom_point(aes(color = direction), alpha = 0.7, size = 1.2) +
+  scale_color_manual(values = c(
+    "Up" = "red",
+    "Down" = "blue",
+    "Not sig" = "grey70"
+  )) +
+  geom_vline(xintercept = c(-1, 1), linetype = "dashed", 
+             color = "steelblue") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed", 
+             color = "steelblue") +
+  theme_minimal() +
+  labs(
+    title = paste0(plt_title, "(Up: ", count_up ,", Down: ", count_down,")"),
+    x = "log2 fold change (logFC)",
+    y = "-log10(p-value)",
+    color = NULL
+  )  +
+  ggrepel::geom_text_repel(
+        data = tab[1:10,],
+        max.overlaps = 50)
+}
+
+
+for(n in colnames(contr)){
+  plot(volcano_plot_contr(contrast = contr[, n], 
+                               plt_title = n))
+}
+
+```
+
+There seem to be a lot more significantly differentially expressed genes when comparing males to females vs. MDD to controls. The female MDD vs. female Control contrast looks pretty much the same as the MDD vs. Control contrast. 
+
+## Top Hit Heatmap
+### {#top-hit-heatmap}
+Then we summarised the MDD vs. Control results in a heatmap [@isserlin2026].
+
+```{r, fig.cap='Figure 10. Heatmap of z-scored gene expression for the top 50 most significant differentially expressed genes in the MDD vs. Control contrast. Rows and columns are hierarchically clustered.'}
+qlf_mddvctrl <- edgeR::glmQLFTest(fit, contrast = contr[, "MDDvctrl"])
+tags_fmddvmmdd <- edgeR::topTags(qlf_mddvctrl, n = Inf)$table %>% rownames_to_column("ensembl_gene_id")
+
+# add HUGO gene id mappings 
+mapped_tab <- tags_fmddvmmdd %>%
+  mutate(ensembl_gene_id = as.character(ensembl_gene_id)) %>%
+  left_join(map_1to1, by = "ensembl_gene_id") %>%
+  mutate(
+    # Use HGNC when available, otherwise fall back to Ensembl
+    display_name = ifelse(!is.na(hgnc_symbol) & hgnc_symbol != "",
+                          hgnc_symbol,
+                          ensembl_gene_id)
+  )
+
+# keep only top 50 most significant genes 
+top_n <- 50  
+top_hits_tbl <- mapped_tab %>%
+  arrange(FDR, PValue) %>%
+  slice_head(n = top_n)
+
+# Ensembl IDs for subsetting the count matrix
+top_hits_ensembl <- top_hits_tbl$ensembl_gene_id
+
+# row labels for heatmap
+top_hits_labels <- top_hits_tbl$display_name
+
+# logCPM from counts for visualization
+logcpm <- edgeR::cpm(mdd_data, log = TRUE, prior.count = 1)
+
+# keep only genes present in the expression matrix
+keep <- top_hits_ensembl %in% rownames(logcpm)
+hm_mat <- logcpm[top_hits_ensembl[keep], , drop = FALSE]
+
+# Create labels aligned to hm_mat rows
+hm_labels <- top_hits_labels[keep]
+
+# make row gene labels unique 
+rownames(hm_mat) <- make.unique(hm_labels)
+
+# z-score per gene across samples for pattern visibility
+hm_z <- t(scale(t(hm_mat)))
+
+sample_metadata$sex <- as.factor(sample_metadata$sex)
+sample_metadata$condition <- as.factor(sample_metadata$condition)
+cond_levels <- levels(sample_metadata$condition)
+sex_levels  <- levels(sample_metadata$sex)
+
+# colour palette for condition
+cond_cols <- setNames(
+  RColorBrewer::brewer.pal(max(3, length(cond_levels)), "Set3")[seq_along(cond_levels)],
+  cond_levels
+)
+
+# colour palette for sex
+sex_cols <- setNames(
+  RColorBrewer::brewer.pal(max(3, length(sex_levels)), "Set2")[seq_along(sex_levels)],
+  sex_levels
+)
+
+# column annotation
+ha <- ComplexHeatmap::HeatmapAnnotation(
+  condition = sample_metadata$condition,
+  sex  = sample_metadata$sex,
+  col = list(
+    condition = cond_cols,
+    sex  = sex_cols
+  ),
+  annotation_legend_param = list(
+    condition = list(title = "Condition"),
+    sex  = list(title = "Sex")
+  )
+)
+
+# colour scale for z-scores
+col_fun <- circlize::colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
+
+# heatmap!
+ComplexHeatmap::Heatmap(
+  hm_z,
+  col = col_fun,
+  top_annotation = ha,
+  show_row_names = FALSE,
+  show_column_names = FALSE,
+  cluster_rows = TRUE,
+  cluster_columns = TRUE,
+  row_title = paste0("Top ", nrow(hm_z), " genes (edgeR: MDD vs. Control)"),
+  column_title = "Samples"
+)
+```
+
+There was not a strong MDD vs. control signal in the top 50 most significant hits between the MDD vs. control groups. There was a very strong sex specific signal. There was a decent size block on the left of the heatmap that was composed of MDD participants (but it also has mostly females too). In order to perhaps get a more disease relevant signal, we decided to perform the whole count filtering, normalization, and differential expression pipeline in a sex stratified manner. I would be interesting to see how many of the top hits are X or Y linked.
+
+# Sex Stratified Filtering, Normalization, Differential Expression
+
+Since we've already done quality control checks in the whole sample, we were pretty sure that there are no poor quality samples and we could do the whole analysis pipeline stratified by sex.
+
+```{r}
+# all functions are essentially repeated from the above sections
+
+# filter out lowly expressed genes
+count_filt <- function(count_data = mdd_data, min_count = 3, 
+                       design_mat = design){
+  dat_cpm <- cpm(y = count_data)
+  to_remove <- edgeR::filterByExpr(dat_cpm, min.count = min_count, 
+                                   design = design)
+  return(dat_cpm[to_remove,])
+}
+
+# TMM normalize counts
+normalize_filt_data_mds <- function(count_data = mdd_data, 
+                                genes_to_keep = rownames(cpm_filtered),
+                                metadata_cond = sample_metadata$condition,
+                                design_mat = design){
+  dge_filtered <- DGEList(counts = count_data[genes_to_keep, ],
+               group = metadata_cond)
+  dge_filtered  <- calcNormFactors(dge_filtered , method = "TMM")
+  norm_cpm <- cpm(dge_filtered, log = FALSE, prior.count = 1)
+  
+  current_colors <- RColorBrewer::brewer.pal(n = length(unique(metadata_cond)),
+                                             "Set2")
+  names(current_colors) <- levels(factor(metadata_cond))
+  
+  plotMDS(norm_cpm,
+    col = alpha(current_colors[metadata_cond], 0.3),
+    main = "MDS plot (colored by condition)", pch = 16
+  )
+  legend("topright",
+    legend = names(current_colors),
+    col = current_colors,
+    pch = 16,
+    bty = "n"
+  )
+  return(norm_cpm)
+}
+
+# DEA + volcano plot
+DEA_volcano_plot <- function(norm_data = norm_cpm, 
+                             metadata_cond = sample_metadata$condition,
+                             design_mat = design, 
+                             contr_name = "MDDvctrl",
+                             contrast = contr[, contr_name]){
+
+  dge_norm <- DGEList(counts = norm_data,
+                 group = metadata_cond)
+  # Estimate dispersion and fit QL model
+  edge <- edgeR::estimateDisp(dge_norm, design_mat)
+  fit <- edgeR::glmQLFit(edge, design_mat)
+  
+  
+  qlf_mddvctrl <- edgeR::glmQLFTest(fit, contrast = contrast)
+  
+  tags_mddvctrl <- edgeR::topTags(qlf_mddvctrl, n = Inf)$table %>% rownames_to_column("ensembl")
+  
+  kable_head(tags_mddvctrl, n = 20)
+  
+  plot(volcano_plot_contr(ft = fit, contrast = contrast, 
+                                 plt_title = contr_name))
+  
+  return(fit)  
+}
+
+# make gene expression heatmap from top n most significant DEA hits
+DEA_heatmap <- function(count_data = mdd_data, 
+                        genes_to_keep = rownames(cpm_filtered),
+                        metadata_cond = sample_metadata$condition,
+                        metadata_sex = sample_metadata$sex,
+                        design_mat = design,
+                        edger_fit = fit,
+                        contr_name = "MDDvctrl",
+                        contrast = contr[[contr_name]],
+                        top_n = 30,
+                        ensembl2hgnc = map_1to1){
+  qlf_mddvctrl <- edgeR::glmQLFTest(edger_fit, 
+                                    contrast = contrast)
+  tags_fmddvmmdd <- edgeR::topTags(qlf_mddvctrl, n = Inf)$table %>% rownames_to_column("ensembl_gene_id")
+  # Keep only the columns we need and ensure they are character
+  
+  # Join mapping onto the edgeR results table (tab_20_vs_nt)
+  mapped_tab <- tags_fmddvmmdd %>%
+    mutate(ensembl_gene_id = as.character(ensembl_gene_id)) %>%
+    left_join(ensembl2hgnc, by = "ensembl_gene_id") %>%
+    mutate(
+      # Use HGNC when available, otherwise fall back to Ensembl
+      display_name = ifelse(!is.na(hgnc_symbol) & hgnc_symbol != "",
+                            hgnc_symbol,
+                            ensembl_gene_id)
+    )
+  
+  top_hits_tbl <- mapped_tab %>%
+    arrange(FDR, PValue) %>%
+    slice_head(n = top_n)
+  
+  # Ensembl IDs for subsetting the matrix
+  top_hits_ensembl <- top_hits_tbl$ensembl_gene_id
+  
+  # Row labels we want to show on the heatmap
+  top_hits_labels <- top_hits_tbl$display_name
+  
+  logcpm <- edgeR::cpm(count_data, log = TRUE, prior.count = 1)
+  
+  # Keep only genes present in the expression matrix
+  keep <- top_hits_ensembl %in% rownames(logcpm)
+  
+  hm_mat <- logcpm[top_hits_ensembl[keep], , drop = FALSE]
+  
+  # Create labels aligned to hm_mat rows
+  hm_labels <- top_hits_labels[keep]
+  
+  # Make labels unique while preserving readability
+  rownames(hm_mat) <- make.unique(hm_labels)
+  
+  # Z-score per gene across samples for pattern visibility
+  hm_z <- t(scale(t(hm_mat)))
+  cond_sorted <- order(metadata_cond)
+  hm_z <- hm_z[, cond_sorted]
+  metadata_cond <- as.factor(metadata_cond[cond_sorted])
+  metadata_sex <- as.factor(metadata_sex[cond_sorted])
+
+  # Set3 palettes (qualitative)
+  cond_levels <- levels(metadata_cond)
+  sex_levels <- levels(metadata_sex)
+
+  cond_cols <- setNames(
+    RColorBrewer::brewer.pal((length(cond_levels)),
+                             "Set3")[seq_along(cond_levels)],
+    cond_levels
+  )
+  sex_cols <- setNames(
+    RColorBrewer::brewer.pal((length(sex_levels)),
+                             "Set2")[seq_along(sex_levels)],
+    sex_levels
+  )
+  ha <- ComplexHeatmap::HeatmapAnnotation(
+    condition = metadata_cond,
+    sex = metadata_sex,
+    col = list(
+      condition = cond_cols,
+      sex = sex_cols
+    ),
+    annotation_legend_param = list(
+      condition = list(title = "Condition"),
+      sex = list(title = "Sex")
+    )
+  )
+  
+  col_fun <- circlize::colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
+  
+  # first heatmap: columns are clustered with no constraints
+  plot(ComplexHeatmap::Heatmap(
+    hm_z,
+    col = col_fun,
+    top_annotation = ha,
+    show_row_names = TRUE,
+    row_names_gp = gpar(fontsize = 8),
+    show_column_names = FALSE,
+    cluster_rows = TRUE,
+    cluster_columns = TRUE,
+    row_title = paste0("Top ", nrow(hm_z), " genes (edgeR: ", contr_name,")"),
+    column_title = "Samples"
+  ))
+  
+  # second heatmap: columns are clustered while keeping disease states together
+  ComplexHeatmap::Heatmap(
+    hm_z,
+    col = col_fun,
+    top_annotation = ha,
+    show_row_names = TRUE,
+    row_names_gp = gpar(fontsize = 8),
+    show_column_names = FALSE,
+    cluster_rows = TRUE,
+    cluster_columns = cluster_within_group(hm_z, metadata_cond), 
+    row_title = paste0("Top ", nrow(hm_z), " genes (edgeR: ", contr_name,")"),
+    column_title = "Samples"
+  )
+}
+```
+
+```{r}
+# make stratified counts, design matrices, contrasts, and metadata
+male_mdd_data <- mdd_data[, grep("_M$", colnames(mdd_data))]
+female_mdd_data <- mdd_data[, grep("_F", colnames(mdd_data))]
+
+male_design <- design[as.logical(design[,"sexM"]), 1:2]
+female_design <- design[!as.logical(design[, "sexM"]), 1:2]
+
+male_contrast <- makeContrasts(MDDvctrl_male = conditionMDD - conditionControl, levels = male_design)
+female_contrast <- makeContrasts(MDDvctrl_female = conditionMDD  - conditionControl, levels = female_design)
+
+male_metadata_cond <- sample_metadata$condition[sample_metadata$sex == "M"]
+female_metadata_cond <- sample_metadata$condition[sample_metadata$sex == "F"]
+
+```
+
+## Sex Specific Filtering
+
+```{r, fig.cap='Figure 11. Overlap of the genes kept after filtering out lowly expressed genes in male, female, and mixed sex samples.'}
+male_count_filt <- count_filt(male_mdd_data, design = male_design)
+female_count_filt <- count_filt(female_mdd_data, design = female_design)
+
+kept_genes <- list(female = rownames(female_count_filt),
+                   male = rownames(male_count_filt),
+                   mixed = rownames(cpm_filtered))
+upset(fromList(kept_genes), 
+      nsets = 3, 
+      order.by = "freq", 
+      mainbar.y.label = "Intersection Size", 
+      sets.x.label = "Set Size",
+      text.scale = 1.5,
+      point.size = 2.5,
+      line.size = 1)
+```
+
+The number of retained genes was positively correlated with the sample size of each strata. This makes sense as larger samples will have more power. All genes retained in the male and female samples were retained in the total, mixed sex sample. It would be interesting to see how significant the differential expression of the 213 genes that are retained in neither the male nor female sample are in the mixed sample.
+
+## Sex Specific Normalization
+
+```{r, fig.cap='Figure 12. MDS plot for males only.'}
+# normalize male data
+male_norm <- normalize_filt_data_mds(male_mdd_data, rownames(male_count_filt), male_metadata_cond, male_design)
+```
+
+
+```{r, fig.cap='Figure 13. MDS plot for females only.'}
+female_norm <- normalize_filt_data_mds(female_mdd_data, rownames(female_count_filt), female_metadata_cond, female_design)
+```
+
+Both female and male strata showed poor separation by condition. This suggests that we may not get any strong MDD vs. Control signals in our DEA.
+
+```{r, fig.cap='Figure 14. Box plot of the excess kurtosis for the normalized CPMs across samples for different strata.'}
+male_kurtosis <- apply(male_norm, MARGIN = 2, 
+                       function(x){kurtosis(log2(x + 1), excess = TRUE)})
+female_kurtosis <- apply(female_norm, MARGIN = 2, 
+                       function(x){kurtosis(log2(x + 1), excess = TRUE)})
+mixed_kurtosis <- apply(norm_cpm, MARGIN = 2, 
+                      function(x){kurtosis(log2(x + 1), excess = TRUE)})
+
+boxplot(list(male = male_kurtosis, female = female_kurtosis, mixed = mixed_kurtosis), xlab = "Sex Grouping", ylab = "Sample Excess Kurtosis")
+```
+
+The median negative excess kurtosis for the total, mixed sex sample and the positive for the sex specific samples suggests that the tails of each sample's normalized CPM distribution tended to be thinner in the mixed sample than either of the sex stratified samples. This may suggest that the sex-heterogeneity of the mixed sample decreases the overall variability of the data after TMM normalization. Across strata, the excess kurtosis was not extremely large and suggests that the normalization step was effective.
+
+```{r, fig.cap='Figure 15a. Volcano plot from the male DEA comparing MDD vs. Control conditions.'}
+male_fit <- DEA_volcano_plot(male_norm, 
+                             metadata_cond = male_metadata_cond,
+                             design_mat = male_design, 
+                             contr_name = "MDDvctrl_male",
+                             contrast = male_contrast[, "MDDvctrl_male"])
+```
+
+
+```{r, fig.cap='Figure 15b. Volcano plot from the female DEA comparing MDD vs. Control conditions.'}
+female_fit <- DEA_volcano_plot(female_norm, 
+                             metadata_cond = female_metadata_cond,
+                             design_mat = female_design, 
+                             contr_name = "MDDvctrl_female",
+                             contrast = female_contrast[, "MDDvctrl_female"])
+```
+
+In Fig. 15, the volcano plots show that the female strata have some extremely highly expressed genes in MDD vs. Controls, whereas the male strata have some less extreme fold changes.
+
+## Sex Specific Top Hit Heatmaps
+### {#sex-specific-top-hit-heatmaps}
+
+```{r, fig.cap='Figure 16. Heatmap of z-scored gene expression for the top 30 most significant differentially expressed genes in the MDD vs. Control contrast in male only strata. Rows and columns are clustered. For the second figure, the columns force conditions together, then are clustered.'}
+DEA_heatmap(count_data = male_mdd_data, 
+                        genes_to_keep = rownames(male_filt),
+                        metadata_cond = male_metadata_cond,
+                        metadata_sex = rep("M", length(male_metadata_cond)),
+                        design_mat = male_design,
+                        edger_fit = male_fit,
+                        contr_name = "MDDvctrl_male",
+                        contrast = male_contrast[, "MDDvctrl_male"],
+                        top_n = 30,
+                        ensembl2hgnc = map_1to1)
+```
+
+
+```{r, fig.cap='Figure 17. Heatmap of z-scored gene expression for the top 30 most significant differentially expressed genes in the male MDD vs. male Control contrast in the whole sample. Rows and columns are clustered. For the second figure, the columns force conditions together, then are clustered.'}
+DEA_heatmap(count_data = mdd_data, 
+                        genes_to_keep = rownames(cpm_filtered),
+                        metadata_cond = sample_metadata$condition,
+                        metadata_sex = sample_metadata$sex,
+                        design_mat = design,
+                        edger_fit = fit,
+                        contr_name = "M_MDDvM_ctrl",
+                        contrast = contr[, "M_MDDvM_ctrl"],
+                        top_n = 30,
+                        ensembl2hgnc = map_1to1)
+```
+
+Fig. 16 shows that the male only analysis highlights distinct top genes than the male MDD vs. male Control contrast from the whole sample (Fig. 17). The MDD singal seems to be stronger in Fig. 16 too (the red on the top-left and blue on the top-right of the heatmap separate Controls from MDD).
+
+```{r, fig.cap='Figure 18. Heatmap of z-scored gene expression for the top 30 most significant differentially expressed genes in the MDD vs. Control contrast in female only strata. Rows and columns are clustered. For the second figure, the columns force conditions together, then are clustered.'}
+DEA_heatmap(count_data = female_mdd_data, 
+                        genes_to_keep = rownames(female_filt),
+                        metadata_cond = female_metadata_cond,
+                        metadata_sex = rep("F", length(female_metadata_cond)),
+                        design_mat = female_design,
+                        edger_fit = female_fit,
+                        contr_name = "MDDvctrl_female",
+                        contrast = female_contrast[, "MDDvctrl_female"],
+                        top_n = 30,
+                        ensembl2hgnc = map_1to1)
+```
+
+
+```{r, fig.cap='Figure 19. Heatmap of z-scored gene expression for the top 30 most significant differentially expressed genes in the female MDD vs. female Control contrast in the whole sample. Rows and columns are clustered. For the second figure, the columns force conditions together, then are clustered.'}
+DEA_heatmap(count_data = mdd_data, 
+                        genes_to_keep = rownames(cpm_filtered),
+                        metadata_cond = sample_metadata$condition,
+                        metadata_sex = sample_metadata$sex,
+                        design_mat = design,
+                        edger_fit = fit,
+                        contr_name = "F_MDDvF_ctrl",
+                        contrast = contr[, "F_MDDvF_ctrl"],
+                        top_n = 30,
+                        ensembl2hgnc = map_1to1)
+
+```
+
+Fig. 18 shows that the female only analysis highlights similar top genes to the female MDD vs. female Control contrast from the whole sample (Fig. 19). The MDD signal seems to be stronger in Fig. 18 too (the red on the top-left corresponds to a cluster of MDD samples).
+
+```{r, results='hide'}
+# rrho to test similarity of these FCs
+
+# pull out FCs by strata
+qlf_male <- edgeR::glmQLFTest(male_fit, 
+                              contrast = male_contrast[, "MDDvctrl_male"])
+tags_male <- edgeR::topTags(qlf_male, n = Inf)$table %>% rownames_to_column("ensembl_gene_id")
+male_list <- tags_male[, c("ensembl_gene_id", "logFC")]
+qlf_female <- edgeR::glmQLFTest(female_fit, 
+                              contrast = female_contrast[, "MDDvctrl_female"])
+tags_female <- edgeR::topTags(qlf_female, n = Inf)$table %>% rownames_to_column("ensembl_gene_id")
+female_list <- tags_female[, c("ensembl_gene_id", "logFC")]
+
+qlf_mixed <- edgeR::glmQLFTest(fit, 
+                              contrast = contr[, "MDDvctrl"])
+tags_mixed <- edgeR::topTags(qlf_mixed, n = Inf)$table %>% rownames_to_column("ensembl_gene_id")
+mixed_list <- tags_mixed[, c("ensembl_gene_id", "logFC")]
+
+# two sided RRHO
+malevfemale <- RRHO(male_list, female_list, alternative = "two.sided", plots = TRUE, outputdir = paste0(file.path(getwd()), "/A1/rrho_plots"), labels = c("male", "female"))
+
+malevmixed <- RRHO(male_list, mixed_list, alternative = "two.sided", plots = TRUE, outputdir = paste0(file.path(getwd()), "/A1/rrho_plots"), labels = c("male", "mixed"))
+femalevmixed <- RRHO(female_list, mixed_list, alternative = "two.sided", plots = TRUE, outputdir = paste0(file.path(getwd()), "/A1/rrho_plots"), labels = c("female", "mixed"))
+
+# test significance of two sided RRHO
+# all 0s
+malevfemalep2 <- pvalRRHO(malevfemale, replications = 30, FUN = mean)
+malevmixedp2 <- pvalRRHO(malevmixed, replications = 30, FUN = mean)
+femalevmixedp2 <- pvalRRHO(femalevmixed, replications = 30, FUN = mean)
+
+# one sided RRHO
+malevfemale <- RRHO(male_list, female_list, alternative = "enrichment")
+malevmixed <- RRHO(male_list, mixed_list, alternative = "enrichment")
+femalevmixed <- RRHO(female_list, mixed_list, alternative = "enrichment")
+
+# test significance of one sided RRHO
+# also all 0s
+malevfemalep1 <- pvalRRHO(malevfemale, replications = 30, FUN = mean)
+malevmixedp1 <- pvalRRHO(malevmixed, replications = 30, FUN = mean)
+femalevmixedp1 <- pvalRRHO(femalevmixed, replications = 30, FUN = mean)
+
+```
+
+```{r}
+rrho_df <- data.frame(Comparison = c("Male vs. Female", "Male vs. Mixed", "Female vs. Mixed"), `One Sided Test` = c(malevfemalep1$pval, malevmixedp1$pval, femalevmixedp1$pval), `Two Sided Test` = c(malevfemalep2$pval, malevmixedp2$pval, femalevmixedp2$pval))
+kable(rrho_df, col.names = colnames(rrho_df), escape = F, caption = "Table 4. p-values of RRHO tests for MDD vs. Control log FC ranked DEA results between strata.") %>%
+  kable_styling(latex_options = "hold_position")
+```
+
+The p-values from the RRHO tests suggest that the female vs. mixed results are highly positively correlated, whereas the results from males vs. females and males vs. mixed are likely anti-correlated.
+
+Overall, the sex stratified DEA suggests that analysing the whole sample was less effective than considering the sexes separately. 
+
+# Discussion
+
+Why is the dataset of interest to you? (#introduction)
+
+Despite similar symptoms in both sexes, MDD has been shown to exhibit sex-specific molecular signals. The transcriptomic signatures seem to be stronger in the brain, but I am interested in if we can still parse some useful information from the blood [@labonte2017, @mokhtari2025]. This dataset also has a large, case-control and sex balanced sample, which is important when we want to draw conclusions from a likely noisy tissue source (blood). 
+
+What are the control and test conditions of the dataset?
+Control: Participants without MDD diagnosis (Hamilton Depression Rating Scale score < 19)
+Test: Participants with MDD diagnosis (Hamilton Depression Rating Scale score ≥ 19)
+
+How many samples in each of the conditions of your dataset?
+
+|  | Total | Male | Female |
+|:---|:---:|:---:|---:|
+| n control | 89 | 34 | 55 |
+| n case | 80 | 30 | 50 |
+
+Were there expression values that were not unique for specific genes? How did you handle these?(#duplicates)
+
+After filtering out lowly expressed genes, there were only unique expression values for each gene. 
+
+Were there expression values that could not be mapped to current HUGO symbols? (#gene-id-mapping)
+
+Before filtering out lowly expressed genes, 14687/52237 Ensembl IDs couldn't be mapped to HUGO symbols. After filtering out lowly expressed genes, 383/12539 Ensembl IDs couldn't be mapped to HUGO symbols.
+
+Were there any outliers in your dataset? How were they handled in the originating paper? How many outliers were removed?(#outlier-handling)
+
+The original paper [@mokhtari2025] did not mention any outliers or outlier handling procedures. While the were some gene expression outliers per each sample, we couldn't justify removing any of them. We kept all observations post count filtering.
+
+How did you handle replicates?
+
+There were no technical replicates. Each sample per condition (and sex) is a biological replicate and the existing count normalization and differential expression functions in edgeR naturally expect multiple samples.
+
+What is the final coverage of your dataset? (#filter-out-low-counts)
+
+The final coverage of our normalized counts is 12539 genes from 169 participants.
+
+Calculate p-values for each of the genes in your expression set. How many genes were significantly differentially expressed? What thresholds did you use and why? (#volcano-plots)
+
+Threshold: FDR < 0.05 because it's a widely used threshold
+Whole sample:
+MDD vs. Control: 206 up, 577 down regulated
+Female MDD vs. Female Control contrast: 206 up, 577 down regulated
+Male MDD vs. Male Control contrast: 477 up, 856 down regulated
+
+Female Stratum:
+MDD vs. Control: 171 up, 490 down regulated
+
+Male Stratum:
+MDD vs. Control: 335 up, 1527 down regulated
+
+Multiple hypothesis testing - correct your p-values using a multiple hypothesis correction method. Which method did you use? And Why? How many genes passed correction?
+
+We used the Benjamini-Hochberg FDR corrected p-values from edgeR. This is an appropriately conservative 
+Since we used the FDR values in the volcano plots, the same number of genes that we stated as up and down regulated pass correction at FDR = 0.05.
+
+Show the amount of differentially expressed genes using an MA Plot or a Volcano plot. Highlight genes of interest. (#volcano-plots)
+
+
+Visualize your top hits using a heatmap. Do you conditions cluster together? Explain why or why not. (#top-hit-heatmap)
+
+In the whole sample, conditions don't cluster together. There was a very strong sex specific signal. There was a decent size block on the left of the heatmap that was composed of MDD participants (but it also has mostly females too). 
+
+There are some slightly stronger signals from the sex stratified analyses. (#sex-specific-top-hit-heatmaps)
+
+[A1 Journal](https://github.com/bcb420-2026/Megan_Ding/wiki/A1-journal)
+
+# References
