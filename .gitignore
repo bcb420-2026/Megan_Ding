@@ -1,6 +1,6 @@
 GEOmetadb.sqlite.gz
 GEOmetadb.sqlite
-/data/
+*/data/*
 A1/GSE251778*
 # Basic Jekyll gitignores (synchronize to Jekyll.gitignore)
 _site/
