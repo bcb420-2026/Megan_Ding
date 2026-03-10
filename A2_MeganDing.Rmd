@@ -610,6 +610,8 @@ Immune response in female DE genes was not mentioned in the original paper [@mok
 
 Our observed enrichment of ubiquitination terms is likely related to the immune activation aspect of the biological aetiology of MDD. CYLD is a deubiquitinase that removes K63-linked ubiquitin of NF-kappa B essential modulator (NEMO), up-regulates thymocyte progression to T cells, and down-regulates angiogenesis [@yu]. This pathway ties together some of the annotations that pop-up in the thresholded analysis (dysregulation of ubiquitination, up-regulation of T cell activation) and non-thresholded analysis (up-regulation of nuclear factor of activated T cell and angiogenesis). In general, the up-regulation of T cell activation and K63-linked ubiquitin suggests activation of CYLD (which has log2FC = 0.076237510, FDR = 0.40595574 from our DEA from Assignment 1), but the up-regulation of angiogenesis we see is not consistent with this proposed mechanism. This suggests that there is multi-pathway dysfunction occuring in blood of females with MDD. Maldonado-Garcia et al. also report that extracellular monomeric ubiquitin may be a therapeutic option for MDD, and our results may suggest that there are sex and tissue specific considerations to this potential therapy [@maldonado-garcia]. 
 
+Overall, our findings support the original paper's [@mokhtari] conclusion that female MDD blood transcriptomic DE gene patterns are distinct to male patterns. We also highlight ubiquitination as a novel, complexly dysregulated pathway that contributes to the immunological characterization of MDD in females.
+
 ## Thresholded over-representation analysis
 
 [1. Which method did you choose and why?](#threshORA)
