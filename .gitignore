@@ -8,6 +8,8 @@ _site/
 .jekyll-cache/
 .jekyll-metadata
 
+*Human_GOBP_AllPathways_noPFOCR_with_GO_iea_September_01_2025_symbol.gmt
+*genelist.txt
 *~
 # Additional Ruby/bundler ignore for when you run: bundle install
 /vendor

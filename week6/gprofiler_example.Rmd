@@ -1,0 +1,41 @@
+---
+title: "g:profiler example"
+output: html_notebook
+---
+```{r}
+library(gprofiler2)
+```
+
+```{r}
+query <- read.delim("genelist.txt", header = F)
+query <- query[, 1]
+enres <- gost(
+  query,
+  organism = "hsapiens",
+  ordered_query = FALSE,
+  multi_query = FALSE,
+  significant = TRUE,
+  exclude_iea = FALSE,
+  measure_underrepresentation = FALSE,
+  evcodes = TRUE,
+  user_threshold = 0.05,
+  correction_method = "fdr",
+  domain_scope = "annotated",
+  custom_bg = NULL,
+  numeric_ns = "",
+  sources = c("GO:BP", "REAC", "WP"),
+  as_short_link = FALSE,
+  highlight = FALSE
+)
+```
+
+```{r}
+gostplot(enres, capped = TRUE, interactive = TRUE)
+```
+
+```{r}
+TFEC_inds <- grep("TFEC", (enres[["result"]][["intersection"]]))
+TFEC_terms <- paste(enres[["result"]][["source"]][TFEC_inds], enres[["result"]][["term_name"]][TFEC_inds], enres[["result"]][["p_value"]][TFEC_inds], sep = ", ")
+TFEC_terms
+```
+

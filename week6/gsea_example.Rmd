@@ -1,0 +1,147 @@
+---
+title: "GSEA Example"
+output: html_notebook
+---
+
+```{r}
+install.packages("GSA")
+BiocManager::install("fgsea")
+BiocManager::install("clusterProfiler")
+install.packages("ggridges")
+library(GSA)
+library(DOSE)
+library(fgsea)
+library(clusterProfiler)
+library(ggplot2)
+library(enrichplot)
+library(dplyr)
+library(stringr)
+library(forcats)
+```
+
+```{r}
+rnk_genes <- read.delim("MesenvsImmuno_RNASeq_ranks.rnk")
+rnk_genes_rnk <- rnk_genes[,2][order(rnk_genes$rank, decreasing = T)]
+names(rnk_genes_rnk) <- rnk_genes[,1][order(rnk_genes$rank, decreasing = T)]
+rnk_genes_rnk <- rnk_genes_rnk[!duplicated(names(rnk_genes_rnk))]
+```
+
+```{r}
+bg_genes <-  GSA.read.gmt("Human_GOBP_AllPathways_noPFOCR_with_GO_iea_September_01_2025_symbol.gmt")
+
+bg_genes_list <- bg_genes$genesets
+names(bg_genes_list) <- bg_genes$geneset.descriptions
+```
+
+```{r}
+fgsea_res <- fgsea(pathways = bg_genes_list, 
+                 stats = rnk_genes_rnk,
+                 scoreType = 'std', 
+                 minSize = 15,
+                 maxSize = 200,
+                 nproc = 1,
+                 nperm = 1000) 
+```
+
+```{r}
+epith_leading <- unlist(fgsea_res[fgsea_res$pathway == "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION", "leadingEdge"])
+
+imm_leading <- unlist(fgsea_res[fgsea_res$pathway == "HALLMARK_INTERFERON_ALPHA_RESPONSE", "leadingEdge"])
+```
+
+```{r}
+plotEnrichment(
+  bg_genes_list[["HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION"]],
+               rnk_genes_rnk) +
+  labs(title="HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION")
+
+plotEnrichment(
+  bg_genes_list[["HALLMARK_INTERFERON_ALPHA_RESPONSE"]],
+               rnk_genes_rnk) +
+  labs(title="HALLMARK_INTERFERON_ALPHA_RESPONSE")
+
+
+topPathwaysUp <- fgsea_res[ES > 0][head(order(pval), n=10), pathway]
+topPathwaysDown <- fgsea_res[ES < 0][head(order(pval), n=10), pathway]
+topPathways <- c(topPathwaysUp, rev(topPathwaysDown))
+plotGseaTable(bg_genes_list[topPathways], rnk_genes_rnk, fgsea_res, 
+              gseaParam=1)
+
+# to select indep pathways
+
+topPathwaysUpCol <- fgsea_res[ES > 0][head(order(pval, decreasing = F), n=15), ]
+topPathwaysDownCol <- fgsea_res[ES < 0][head(order(pval, decreasing = T), n=15), ]
+
+collapsedPathwaysUp <- collapsePathways(
+  topPathwaysUpCol, bg_genes_list,
+  rnk_genes_rnk, pval.threshold = 1)
+collapsedPathwaysDown <- collapsePathways(
+  topPathwaysDownCol, bg_genes_list,
+  -rev(rnk_genes_rnk), pval.threshold = 1)
+
+mainPathways <- fgsea_res[pathway %in% c(collapsedPathwaysUp$mainPathways, collapsedPathwaysDown$mainPathways)][
+                         order(-NES), pathway]
+plotGseaTable(bg_genes_list[mainPathways], rnk_genes_rnk, fgsea_res, 
+              gseaParam = 1)
+```
+
+```{r}
+gene_count <- fgsea_res %>% group_by(pathway) %>% summarise(count = sum(str_count(leadingEdge, ",")) + 1)
+
+## merge with the original dataframe
+dot_df <- left_join(fgsea_res[pathway %in% c(collapsedPathwaysUp$mainPathways, collapsedPathwaysDown$mainPathways)][
+                         order(-NES), ], gene_count, by = "pathway") %>% mutate(GeneRatio = count/size)
+dot_df <- dot_df[order(GeneRatio, decreasing = F), ]
+dot_df$pathway_lab <- str_trunc(dot_df$pathway, width = 30)
+
+## plot
+ggplot(dot_df, aes(x = GeneRatio, 
+                   y = factor(pathway_lab, levels = dot_df$pathway_lab[order(dot_df$GeneRatio)]))) + 
+               geom_point(aes(size = GeneRatio, color = padj)) +
+               theme_bw(base_size = 14) +
+        scale_colour_gradient(low="red") +
+        ylab(NULL) + 
+        ggtitle("pathway enrichment")
+```
+
+```{r}
+bg_genes_df <- stack(bg_genes_list)
+bg_genes_df <- bg_genes_df[, 2:1]
+
+# fgsea is faster
+clustp_res <- GSEA(
+(rnk_genes_rnk),
+exponent = 1,
+minGSSize = 15,
+maxGSSize = 200,
+eps = 1e-10,
+pvalueCutoff = 0.05,
+pAdjustMethod = "BH",
+gson = NULL,
+TERM2GENE = bg_genes_df,
+verbose = TRUE,
+seed = 420,
+by = "fgsea",
+nPerm = 1000
+)
+```
+
+```{r}
+epith_leading_cp <- (strsplit(clustp_res@result[clustp_res@result$ID == "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION", "core_enrichment"], "/")[[1]])
+
+imm_leading_cp <- rev(strsplit(clustp_res@result[clustp_res@result$ID == "HALLMARK_INTERFERON_ALPHA_RESPONSE", "core_enrichment"], "/")[[1]])
+```
+
+```{r}
+gseaplot(clustp_res, by = "all", title = "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION", geneSetID = "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION")
+
+gseaplot(clustp_res, by = "all", title = "HALLMARK_INTERFERON_ALPHA_RESPONSE", geneSetID = "HALLMARK_INTERFERON_ALPHA_RESPONSE")
+
+dp <- dotplot(clustp_res, showCategory=10, split=".sign") + facet_grid(.~.sign)
+
+plot(dp)
+
+ridgeplot(clustp_res) + labs(x = "enrichment distribution")
+
+```
+
